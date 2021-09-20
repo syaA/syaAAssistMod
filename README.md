@@ -1,0 +1,2 @@
+# syaAAssistMod
+CookieClicker Assist Mod
