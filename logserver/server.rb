@@ -18,6 +18,7 @@ end
 
 $logger = Logger.new($log_filename)
 
+# JSON を受け取る RPC.
 class JsonRPCServlet < WEBrick::HTTPServlet::AbstractServlet
   def initialize(server, proc)
     super(server, proc);
@@ -59,6 +60,7 @@ httpserver.mount("/reset", JsonRPCServlet, method(:rpc_reset))
 trap('INT') {
   httpserver.shutdown
   config = Hash.new
+  # 最後のログファイル名を保存しておく.
   config['current'] = $log_filename
   File.open('config.yaml', 'w') { |f|
     YAML.dump(config, f);
