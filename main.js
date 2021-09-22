@@ -255,17 +255,18 @@ Game.registerMod("syaa_assist_mod",{
 
 		// ログ保存.
 		MOD.sendLog = function() {
-			let curCookie = Game.cookies;
-			let curCps = Game.cookiesPsRaw;
-			let bakedCookie = Game.cookiesEarned;
-			let body = '{' +
-									'"curCookie":'+ curCookie + ',' +
-									'"curCps":' + curCps + ',' +
-									'"bakedCookie":' + bakedCookie +
-									'}';
+			let data = {
+				cookies : Game.cookies,
+				cookiesPsRaw : Game.cookiesPsRaw,
+				cookiesEarned : Game.cookiesEarned,
+				objectsAmount : Game.ObjectsById.map(function(obj) {
+					return obj.amount;
+				})
+			};
+			
 			let xhr = new XMLHttpRequest();
 			xhr.open('POST', 'http://127.0.0.1:28080/append_log');
-			xhr.send(body);
+			xhr.send(JSON.stringify(data));
 		}
 		setInterval(MOD.sendLog, 60 * 1000); // 一分ごとに記録.
 		Game.registerHook('reset', function(hard) {

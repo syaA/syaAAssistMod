@@ -35,17 +35,20 @@ class JsonRPCServlet < WEBrick::HTTPServlet::AbstractServlet
   end
 end
 
+# ログ追加.
 def rpc_append_log(json)
-  $logger.info("#{json['curCookie']}, #{json['curCps']}, #{json['bakedCookie']}");
-  return ""
+  $logger.info("#{json['cookies']},#{json['cookiesPsRaw']},#{json['cookiesEarned']},#{json['objectsAmount'].join(',')}");
+  return ''
 end
 
+# リセット.
 def rpc_reset(json)
   $log_filename = new_log_filename()
   $logger = Logger.new($log_filename)
-  return ""
+  return ''
 end
 
+# サーバ開始.
 httpserver = WEBrick::HTTPServer.new(
   { :DocumentRoot => './',
     :BindAddress => '127.0.0.1',
