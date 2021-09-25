@@ -1,0 +1,45 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>CookieClicker ログ</title> 
+  </head>
+  <body>
+    <h1>グラフ</h1>
+    <div class="chart-container" style="position: relative; height:40vh; width:80vw">
+      <canvas id="canvas_chart"></canvas>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+    <script>
+      let ctx = document.getElementById("canvas_chart");
+      let chart_cps = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [<%= labels %>],
+          datasets: [
+            {
+              label: 'CPS',
+              data:[<%= cps_data %>],
+              fill: false,
+              cubicInterpolationMode: 'default'
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          title: { display: true, text: 'クッキー' },
+          scales: {
+            x: {
+              display: true,
+            },
+            y: {
+              display: true,
+              type: 'logarithmic',
+            }
+          }
+        },
+      });
+    </script>
+
+  </body>
+</html>

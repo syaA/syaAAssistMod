@@ -5,6 +5,7 @@ require "webrick"
 require "yaml"
 require "logger"
 require "json"
+require "erb"
 
 
 LOG_DIR = './log'
@@ -71,12 +72,34 @@ def rpc_reset(json)
 end
 
 # サーバ開始.
+#WEBrick::HTTPServlet::FileHandler.add_handler('erb', WEBrick::HTTPServlet::ERBHandler)
 httpserver = WEBrick::HTTPServer.new(
   { :DocumentRoot => './',
     :BindAddress => '127.0.0.1',
     :Port => 28080})
+# RPC 関連.
 httpserver.mount("/append_log", JsonRPCServlet, method(:rpc_append_log))
 httpserver.mount("/reset", JsonRPCServlet, method(:rpc_reset))
+
+# ログ表示.
+httpserver.mount_proc("/") { |req, res|
+  template = ERB.new(File.read('contents/index.erb'))
+
+  data = Array.new
+  File.open($logger_filename, 'r') { |f|
+    f.each { |l|
+      if l =~ /INFO -- : /
+        data << $'.split(',').map(&:to_f)
+      end
+    }
+  }
+
+  labels = Array.new(data.size, '""').join(',')
+  cps_data = data.map{|l| l[2]}.join(',')
+
+  res.content_type = "text/html"
+  res.body << template.result(binding)
+}
 
 trap('INT') {
   httpserver.shutdown
