@@ -256,6 +256,9 @@ Game.registerMod("syaa_assist_mod",{
 		// ログ保存.
 		MOD.sendLog = function() {
 			let data = {
+				bakeryName : Game.bakeryName,
+				seed : Game.seed,
+				fps : Game.fps,
 				cookies : Game.cookies,
 				cookiesPsRaw : Game.cookiesPsRaw,
 				cookiesEarned : Game.cookiesEarned,

@@ -6,17 +6,35 @@ require "yaml"
 require "logger"
 require "json"
 
-def new_log_filename()
-  Time.now.strftime('log/%Y%m%d%H%M%S.log')
-end
+
+LOG_DIR = './log'
+
 
 config = YAML.load_file('config.yaml')
-$log_filename = config['current']
-if $log_filename.nil?
-  $log_filename = new_log_filename()
+$logger_filename = config['current']
+$logger = nil
+unless $logger_filename.nil?
+  $logger = Logger.new($logger_filename)
 end
 
-$logger = Logger.new($log_filename)
+# ファイル名に使えない文字を変換
+def rename_for_filename(s)
+  s.gsub(/\\\/\:\*\?\"\<\>\|/, '_')
+end
+
+# ログのファイル名.
+def log_filename(json)
+  # 名前 + seed としておく.
+  name = rename_for_filename(json['bakeryName'])+ '_' + json['seed'] + '.log'
+  File.join(LOG_DIR, name)
+end
+
+# ログ開く.
+def log_open(name)
+  $logger_filename = name
+  $logger = Logger.new($logger_filename)
+end
+
 
 # JSON を受け取る RPC.
 class JsonRPCServlet < WEBrick::HTTPServlet::AbstractServlet
@@ -38,14 +56,17 @@ end
 
 # ログ追加.
 def rpc_append_log(json)
-  $logger.info("#{json['cookies']},#{json['cookiesPsRaw']},#{json['cookiesEarned']},#{json['objectsAmount'].join(',')}");
-  return ''
+  name = log_filename(json)
+  unless $logger_filename == name
+    log_open(name)
+  end
+  s = "#{json['fps']},#{json['cookies']},#{json['cookiesPsRaw']},#{json['cookiesEarned']},#{json['objectsAmount'].join(',')}"
+  $logger.info(s)
+  return s
 end
 
 # リセット.
 def rpc_reset(json)
-  $log_filename = new_log_filename()
-  $logger = Logger.new($log_filename)
   return ''
 end
 
@@ -61,7 +82,7 @@ trap('INT') {
   httpserver.shutdown
   config = Hash.new
   # 最後のログファイル名を保存しておく.
-  config['current'] = $log_filename
+  config['current'] = $logger_filename
   File.open('config.yaml', 'w') { |f|
     YAML.dump(config, f);
   }
