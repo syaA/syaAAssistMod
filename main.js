@@ -202,20 +202,29 @@ Game.registerMod("syaa_assist_mod",{
 				// 買えない方を単に待った場合と、買える方を買ってから買えない方を待った場合で、比較.
 				let canBuy = (a.price < curCookie) ? a : b;
 				let cannotBuy = (canBuy == a) ? b : a;
-				// 買えない方を待った場合の時間.
-				let waitCannotBuy = (cannotBuy.price - curCookie) / curCps;
-				let valueCannotBuy = cannotBuy.cps / waitCannotBuy;
-				// 買える方を買ってから待った場合の時間.
-				let afterCookie = curCookie - canBuy.price;
-				let afterCps = curCps + canBuy.cps;
-				let waitCanBuy = (cannotBuy.price - afterCookie) / afterCps;
-				let valueCanBuy = (canBuy.cps + cannotBuy.cps) / waitCanBuy;
-				// 結果.
-				let ret = cmp(valueCanBuy, valueCannotBuy);
-				if (canBuy == b) {
-					ret *= -1;
+				if (canBuy.cps / canBuy.price > cannotBuy.cps / cannotBuy.price) {
+					// 変える方が効率的なときはそちらを買う.
+					if (canBuy == a) {
+						return -1;
+					} else {
+						return 1;
+					}
+				} else {
+					// 買えない方を待った場合の時間.
+					let waitCannotBuy = (cannotBuy.price - curCookie) / curCps;
+					let valueCannotBuy = cannotBuy.cps / waitCannotBuy;
+					// 買える方を買ってから待った場合の時間.
+					let afterCookie = curCookie - canBuy.price;
+					let afterCps = curCps + canBuy.cps;
+					let waitCanBuy = (cannotBuy.price - afterCookie) / afterCps;
+					let valueCanBuy = (canBuy.cps + cannotBuy.cps) / waitCanBuy;
+					// 結果.
+					let ret = cmp(valueCanBuy, valueCannotBuy);
+					if (canBuy == b) {
+						ret *= -1;
+					}
+					return ret;
 				}
-				return ret;
 			}
 		}
 		
