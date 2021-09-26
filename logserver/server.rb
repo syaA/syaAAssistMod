@@ -39,12 +39,30 @@ end
 
 # JSON を受け取る RPC.
 class JsonRPCServlet < WEBrick::HTTPServlet::AbstractServlet
-  def initialize(server, proc)
+  def initialize(server, method, proc)
     super(server, proc);
+    @method = method
     @proc = proc
+  end
+  #GET送信に対する処理を定義.
+  def do_GET(req, res)
+    if @method != 'GET'
+      res.status = 405 # MethodNot Allowed
+      return
+    end
+    resp = @proc.call(req)
+
+    res.status = 200
+    res['Content-Length'] = resp.bytesize
+    res['Content-Type']   = "text/json; charset=utf-8"
+    res.body = resp
   end
   #POST送信に対する処理を定義
   def do_POST(req, res)
+    if @method != 'POST'
+      res.status = 405 # MethodNot Allowed
+      return
+    end
     hash = JSON.parse(req.body);
     resp = @proc.call(hash)
 
@@ -71,22 +89,20 @@ def rpc_reset(json)
   return ''
 end
 
-# サーバ開始.
-#WEBrick::HTTPServlet::FileHandler.add_handler('erb', WEBrick::HTTPServlet::ERBHandler)
-httpserver = WEBrick::HTTPServer.new(
-  { :DocumentRoot => './',
-    :BindAddress => '127.0.0.1',
-    :Port => 28080})
-# RPC 関連.
-httpserver.mount("/append_log", JsonRPCServlet, method(:rpc_append_log))
-httpserver.mount("/reset", JsonRPCServlet, method(:rpc_reset))
+# ログ数取得.
+def rpc_get_log_list(req)
+  return JSON.dump( {
+    'logs' => Dir.glob(File.join(LOG_DIR, '*.log')).map { |f| File.basename(f, '.log') },
+    'current' => File.basename($logger_filename, '.log')
+  } );
+end
 
-# ログ表示.
-httpserver.mount_proc("/") { |req, res|
-  template = ERB.new(File.read('contents/index.erb'))
+# ログのデータ取得.
+def rpc_get_log_data(req)
+  target = File.join(LOG_DIR, req.query['logname'] + '.log')
 
   data = Array.new
-  File.open($logger_filename, 'r') { |f|
+  File.open(target, 'r') { |f|
     f.each { |l|
       if l =~ /INFO -- : /
         data << $'.split(',').map(&:to_f)
@@ -94,17 +110,37 @@ httpserver.mount_proc("/") { |req, res|
     }
   }
 
-  labels = data.size.times.map { |i| (i % 10 == 0) ? "'#{i}'" : "''" }.join(',')
-  cookie_data = data.map{|l| l[1]}.join(',')
-  cps_data = data.map{|l| l[2]}.join(',')
-  NUM_OBJECT = 14;
-  object_data = Array.new(NUM_OBJECT, Array.new);
-  object_data.size.times { |i|
-    object_data[i] = data.map { |l| l[4 + i] }.join(',');
+  labels = data.size.times.map { |i| (i % 10 == 0) ? "#{i}" : "" }
+  cookiesEarned = data.map{|l| l[3]}
+  cookiesPsRaw = data.map{|l| l[2]}
+  # オブジェクトはある分だけ.
+  last = data[-1].size - data[-1].reverse_each.find_index { |n| n != 0 }
+  objectsAmount = Array.new(last - 4, Array.new);
+  objectsAmount.size.times { |i|
+    objectsAmount[i] = data.map { |l| l[4 + i] }
   }
-  res.content_type = "text/html"
-  res.body << template.result(binding)
-}
+
+  return JSON.dump( {
+    'labels' => labels,
+    'cookiesEarned' => cookiesEarned,
+    'cookiesPsRaw' => cookiesPsRaw,
+    'objectsAmount' => objectsAmount
+  });
+end
+
+# サーバ開始.
+#WEBrick::HTTPServlet::FileHandler.add_handler('erb', WEBrick::HTTPServlet::ERBHandler)
+httpserver = WEBrick::HTTPServer.new(
+  { :DocumentRoot => './',
+    :BindAddress => '127.0.0.1',
+    :Port => 28080})
+# RPC 関連.
+httpserver.mount("/append_log", JsonRPCServlet, 'POST', method(:rpc_append_log))
+httpserver.mount("/reset", JsonRPCServlet, 'POST', method(:rpc_reset))
+httpserver.mount("/get_log_list", JsonRPCServlet, 'GET', method(:rpc_get_log_list))
+httpserver.mount("/get_log_data", JsonRPCServlet, 'GET', method(:rpc_get_log_data))
+httpserver.mount('/', WEBrick::HTTPServlet::FileHandler, 'contents/')
+httpserver.mount('/view_log.js', WEBrick::HTTPServlet::FileHandler, 'contents/view_log.js')
 
 trap('INT') {
   httpserver.shutdown
