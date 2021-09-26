@@ -94,9 +94,14 @@ httpserver.mount_proc("/") { |req, res|
     }
   }
 
-  labels = Array.new(data.size, '""').join(',')
+  labels = data.size.times.map { |i| (i % 10 == 0) ? "'#{i}'" : "''" }.join(',')
+  cookie_data = data.map{|l| l[1]}.join(',')
   cps_data = data.map{|l| l[2]}.join(',')
-
+  NUM_OBJECT = 14;
+  object_data = Array.new(NUM_OBJECT, Array.new);
+  object_data.size.times { |i|
+    object_data[i] = data.map { |l| l[4 + i] }.join(',');
+  }
   res.content_type = "text/html"
   res.body << template.result(binding)
 }
