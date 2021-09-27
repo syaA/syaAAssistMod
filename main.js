@@ -18,9 +18,12 @@ Game.registerMod("syaa_assist_mod",{
 		MOD.prefs=[];
 		MOD.prefs.menu = 0;
 		MOD.prefs.bigClick = 1;	// 自動クリックするか？
-		MOD.prefs.bigClickPS = 10;	// 秒間自動クリック数.
+		MOD.prefs.bigClickInterval = 30 / 10;	// 自動クリック間隔(フレーム).
 		MOD.prefs.goldenClick = 1;	// ゴールデンクッキー等を自動クリックするか？
+		MOD.prefs.goldenCheckInterval = 30 * 1;	// ゴールデンクッキーのチェック間隔(フレーム)
 		MOD.prefs.buyObject = 1;	// 自動購入するか？
+		MOD.prefs.buyCheckInterval = 30 * 3; // 自動購入のチェック間隔(フレーム).
+		MOD.prefs.sendLogInterval = 60 * 30; // ログ送信間隔(フレーム).
 		MOD.showMenu = 0;
 
 		// ================================================================================
@@ -54,9 +57,9 @@ Game.registerMod("syaa_assist_mod",{
 		}
 		// メニューボタン.
 		l('storeTitle').append(MOD.createButton('menu', 'menuButton', 'Assist', 'Assist'));
-		l('menuButton').after(MOD.createButton('bigClick', 'bigClickButton', 'BigClick ON', 'BigClick OFF', function(sw) { MOD.setBigCookieClick(sw); }));
+		l('menuButton').after(MOD.createButton('bigClick', 'bigClickButton', 'BigClick ON', 'BigClick OFF'));
 		l('bigClickButton').style.display = "none"
-		l('menuButton').after(MOD.createButton('goldenClick', 'goldenClickButton', 'GoldClick ON', 'GoldClick OFF', function(sw) { MOD.setGoldenCookieClick(sw); }));
+		l('menuButton').after(MOD.createButton('goldenClick', 'goldenClickButton', 'GoldClick ON', 'GoldClick OFF'));
 		l('goldenClickButton').style.display = "none"
 		l('menuButton').after(MOD.createButton('buyObject', 'buyObjectButton', 'BuyObject ON', 'BuyObject OFF'));
 		l('buyObjectButton').style.display = "none"
@@ -73,15 +76,6 @@ Game.registerMod("syaa_assist_mod",{
 				l('buyObjectButton').style.display = "none"
 			}
 		});
-
-		Game.registerHook('reset',function(hard){
-//			if (hard)
-//			{
-//				MOD.buttonClicks=0;
-//				MOD.updateScore();
-//			}
-		});
-		
 
 		// ================================================================================
 		// クッキークリック.
@@ -103,20 +97,9 @@ Game.registerMod("syaa_assist_mod",{
 			Game.mouseY = my;
 		}
 
-		MOD.bigCookieInterval = 0;
-		MOD.goldenCookieInterval = 0;
-
 		// クッキーを１クリック.
 		MOD.clickBigCookie = function() {
 			MOD.sendClickEvent(l('bigCookie'));
-		}
-		// クッキーのオートクリックを有効化.
-		MOD.setBigCookieClick = function(sw) {
-			if (sw) {
-				MOD.bigCookieInterval = setInterval(MOD.clickBigCookie, 1000 / MOD.prefs.bigClickPS);
-			} else {
-				clearInterval(MOD.bigCookieInterval);
-			}
 		}
 		// ゴールデンクッキーを全てクリック.
 		MOD.clickGoldenCookie = function() {
@@ -129,19 +112,6 @@ Game.registerMod("syaa_assist_mod",{
 				MOD.sendClickEvent(ss.childNodes[i]);
 			}
 		}
-		// ゴールデンクッキーのオートクリックを有効化.
-		MOD.setGoldenCookieClick = function(sw) {
-			if (sw) {
-				MOD.goldenCookieInterval = setInterval(MOD.clickGoldenCookie, 1000);
-			} else {
-				clearInterval(MOD.goldenCookieInterval);
-			}
-		}
-
-		// くっきーくりっく.
-		MOD.setBigCookieClick(true);
-		// ごーるでんくっきー.
-		MOD.setGoldenCookieClick(true);
 
 		// ================================================================================
 		// 購入.
@@ -153,11 +123,31 @@ Game.registerMod("syaa_assist_mod",{
 
 		// 更新タイミング.
 		Game.registerHook('logic', function() {
-			if (Game.ready) {
+			if (!Game.ready) {
+				return;
+			}
+
+			// クッキークリック.
+			if (MOD.prefs.bigClick && ((Game.T % MOD.prefs.bigClickInterval) == 0)) {
+				MOD.clickBigCookie();
+			}
+
+			// ゴールドクッキークリック.
+			if (MOD.prefs.goldenClick && ((Game.T % MOD.prefs.goldenCheckInterval) == 0)) {
+				MOD.clickGoldenCookie();
+			}
+
+			// 購入.
+			if (MOD.prefs.buyObject && ((Game.T % MOD.prefs.buyCheckInterval) == 0)) {
 				let action = MOD.think();
 				if (action) {
 					action.exec();
 				}
+			}
+
+			// ログ送信.
+			if (((Game.T % MOD.prefs.sendLogInterval) == 0)) {
+				MOD.sendLog();
 			}
 		});
 
@@ -280,14 +270,6 @@ Game.registerMod("syaa_assist_mod",{
 			xhr.open('POST', 'http://127.0.0.1:28080/append_log');
 			xhr.send(JSON.stringify(data));
 		}
-		setInterval(MOD.sendLog, 60 * 1000); // 一分ごとに記録.
-		Game.registerHook('reset', function(hard) {
-			if (hard) {
-				let xhr = new XMLHttpRequest();
-				xhr.open('POST', 'http://127.0.0.1:28080/reset');
-				xhr.send('{}');
-			}
-		});
 
 		//to finish off, we're replacing the big cookie picture with a cool cookie, why not (the image is in this mod's directory)
 		Game.Loader.Replace('perfectCookie.png',this.dir+'/gearedCookie.png');
@@ -296,11 +278,6 @@ Game.registerMod("syaa_assist_mod",{
 		//use this to store persistent data associated with your mod
 		//note: as your mod gets more complex, you should consider storing a stringified JSON instead
 		return String(this.buttonClicks);
-	},
-	draw:function(){
-		if (MOD.showMenu) {
-			
-		}
 	},
 	load:function(str){
 		//do stuff with the string data you saved previously
