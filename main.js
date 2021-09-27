@@ -179,7 +179,7 @@ Game.registerMod("syaa_assist_mod",{
 			let curCookie = Game.cookies;
 			let curCps = Game.cookiesPsRaw;
 			// クリックによる収入は正確に計算するのが難しい...。buf による効果がある部分とない部分がある.
-			let clickCps = Game.computedMouseCps * MOD.prefs.bigClickPS * (Game.cookiesPs / Game.cookiesPsRaw);
+			let clickCps = Game.computedMouseCps * (30 / MOD.prefs.bigClickInterval) * (Game.cookiesPs / Game.cookiesPsRaw);
 			curCps += clickCps;
 			cmp = function(a, b) { return (a > b) ? -1 : ((a < b) ? 1 : 0); }
 			if (((a.price < curCookie) && (b.price < curCookie)) ||
@@ -199,7 +199,8 @@ Game.registerMod("syaa_assist_mod",{
 					} else {
 						return 1;
 					}
-				} else {
+				} else
+				{
 					// 買えない方を待った場合の時間.
 					let waitCannotBuy = (cannotBuy.price - curCookie) / curCps;
 					let valueCannotBuy = cannotBuy.cps / waitCannotBuy;
