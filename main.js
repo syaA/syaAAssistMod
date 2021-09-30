@@ -21,7 +21,8 @@ Game.registerMod("syaa_assist_mod",{
 		MOD.prefs.bigClickInterval = 30 / 10;	// 自動クリック間隔(フレーム).
 		MOD.prefs.goldenClick = 1;	// ゴールデンクッキー等を自動クリックするか？
 		MOD.prefs.goldenCheckInterval = 30 * 1;	// ゴールデンクッキーのチェック間隔(フレーム)
-		MOD.prefs.buyObject = 1;	// 自動購入するか？
+		MOD.prefs.buyObject = 1;	// オブジェクト自動購入するか？
+		MOD.prefs.buyUpgrade = 1;	// アップグレード自動購入するか？
 		MOD.prefs.buyCheckInterval = 30 * 3; // 自動購入のチェック間隔(フレーム).
 		MOD.prefs.sendLogInterval = 60 * 30; // ログ送信間隔(フレーム).
 		MOD.keepTick;	// 通しティック.
@@ -65,6 +66,8 @@ Game.registerMod("syaa_assist_mod",{
 		l('goldenClickButton').style.display = "none"
 		l('menuButton').after(MOD.createButton('buyObject', 'buyObjectButton', 'BuyObject ON', 'BuyObject OFF'));
 		l('buyObjectButton').style.display = "none"
+		l('menuButton').after(MOD.createButton('buyUpgrade', 'buyUpgradeButton', 'BuyUpgrade ON', 'BuyUpgrade OFF'));
+		l('buyUpgradeButton').style.display = "none"
 		// メニュー開く.
 		AddEvent(l('menuButton'), 'click', function(){
 			MOD.showMenu = 1 - MOD.showMenu;
@@ -72,10 +75,12 @@ Game.registerMod("syaa_assist_mod",{
 				l('bigClickButton').style.display = "block"
 				l('goldenClickButton').style.display = "block"
 				l('buyObjectButton').style.display = "block"
+				l('buyUpgradeButton').style.display = "block"
 			} else {
 				l('bigClickButton').style.display = "none"
 				l('goldenClickButton').style.display = "none"
 				l('buyObjectButton').style.display = "none"
+				l('buyUpgradeButton').style.display = "none"
 			}
 		});
 
@@ -121,11 +126,6 @@ Game.registerMod("syaa_assist_mod",{
 		// ================================================================================
 		// 購入.
 		// ================================================================================
-		// オブジェクト CPS.
-		MOD.getObjectCps = function(obj) {
-			return obj.storedCps * Game.globalCpsMult;
-		}
-
 		// 更新タイミング.
 		Game.registerHook('logic', function() {
 			if (!Game.ready) {
@@ -164,10 +164,29 @@ Game.registerMod("syaa_assist_mod",{
 			}
 		});
 
-		// 建物購入行動.
+
+		// オブジェクト CPS.
+		MOD.guessObjectCps = function(obj) {
+			Game.CalculateGains();
+			let cps = Game.cookiesPs;
+			let clickCps = Game.computedMouseCps;
+
+			obj.amount++;
+			Game.CalculateGains();
+
+			cpsInc = Math.max(Game.cookiesPs - cps, 0);
+			clickCpsInc = Math.max(Game.computedMouseCps - clickCps, 0);
+			
+			obj.amount--;
+			Game.CalculateGains();
+
+			return cpsInc + clickCpsInc * 30 / MOD.prefs.bigClickInterval;
+		}
+
+		// オブジェクト購入行動.
 		MOD.ActionBuyObject = function(it) {
 			this.it = it;
-			this.cps = MOD.getObjectCps(it);
+			this.cps = MOD.guessObjectCps(it);
 			this.price = it.getPrice(0);
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
@@ -184,14 +203,44 @@ Game.registerMod("syaa_assist_mod",{
 				}
 			}
 		}
+
+		// アップグレード CPS.
+		MOD.guessUpgradeCps = function(me) {
+			Game.CalculateGains();
+			let cps = Game.cookiesPs;
+			let clickCps = Game.computedMouseCps;
+
+			
+			me.bought = 1;
+			Game.CalculateGains();
+
+			cpsInc = Math.max(Game.cookiesPs - cps, 0);
+			clickCpsInc = Math.max(Game.computedMouseCps - clickCps, 0);
+			
+			me.bought = 0;
+			Game.CalculateGains();
+
+			return cpsInc + clickCpsInc * 30 / MOD.prefs.bigClickInterval;
+		}
+
+		
 		// アップグレード購入行動.
 		MOD.ActionBuyUpgrade = function(it) {
 			this.it = it;
 			this.cps = MOD.guessUpgradeCps(it);
 			this.price = it.getPrice(0);
 			this.exec = function() {
-				if (Game.cookies >= price) {
+				if (Game.cookies >= this.price) {
 					it.buy(1);
+					// ログ.
+					data = {
+						'type' : 'Upgrade',
+						'id' : it.id,
+						'val0' : it.icon[0],
+						'val1' : it.icon[1],
+						'cookiesPsRaw' : Game.cookiesPsRaw
+					};
+					MOD.sendLog('event', data);
 				}
 			}
 		}
@@ -249,20 +298,25 @@ Game.registerMod("syaa_assist_mod",{
 		MOD.think = function() {
 			// 可能な行動を列挙.
 			let actions = [];
-			// モノを買う.
-			for (let i in Game.ObjectsById) {
-				let me = Game.ObjectsById[i];
-				if (!me.locked) {
-					actions.push(new MOD.ActionBuyObject(me));
+
+			if (MOD.prefs.buyObject) {
+				// モノを買う.
+				for (let i in Game.ObjectsById) {
+					let me = Game.ObjectsById[i];
+					if (!me.locked) {
+						actions.push(new MOD.ActionBuyObject(me));
+					}
 				}
 			}
-/*
-			// アップグレードを買う.
-			for (let i in Game.UpgradesInStore) {
-				let me = Game.UpgradesInStore[i];
-				actions.push(new MOD.ActionBuyUpgrade(me));
+
+			if (MOD.prefs.buyUpgrade) {
+				// アップグレードを買う.
+				for (let i in Game.UpgradesInStore) {
+					let me = Game.UpgradesInStore[i];
+					actions.push(new MOD.ActionBuyUpgrade(me));
+				}
 			}
-*/
+
 			// その他行動.
 //			actions.push(new MOD.ActionWait(100));
 
@@ -272,11 +326,6 @@ Game.registerMod("syaa_assist_mod",{
 //			console.log(actions);
 
 			return actions[0];
-		}
-
-		// アップグレードにより増加する CPS を推測.
-		MOD.guessUpgradeCps = function(upgrade) {
-			return 0;
 		}
 
 		// ログ保存.
