@@ -16,7 +16,7 @@ $(document).ready(function(){
         ).appendTo($('#select-log'));
     });
     // 最初のグラフ作成.
-    $.getJSON('http://127.0.0.1:28080/get_log_data', { logname: data.current }, function(data) {
+    $.getJSON('http://127.0.0.1:28080/get_log_data', { logname: $('#select-log')[0].value }, function(data) {
       createChart(data)
     });
   });
@@ -24,6 +24,21 @@ $(document).ready(function(){
   let chartCookie = null;
   let chartObjectAmount = null;
 
+  const zoomOptions = {
+    zoom: {
+      wheel: {
+        enabled: true,
+      },
+      pinch: {
+        enabled: true,
+      },
+      mode: 'xy',
+    },
+    pan: {
+      enabled: true,
+      mode: 'xy',
+    }
+  };
   // グラフ更新.
   createChart = function(log) {
     // すでにあれば破棄.
@@ -35,23 +50,25 @@ $(document).ready(function(){
     }
     // CPS/クッキー作成数 グラフ.
     chartCookie = new Chart($('#cookie-chart-canvas'), {
-      type: 'line',
+      type: 'scatter',
       data: {
-        labels: log.labels,
         datasets: [
-          {
-            label: 'CPS',
-            data: log.cookiesPsRaw,
-            borderColor: LineColor[0],
-            pointRadius: 0,
-            yAxisID: 'y_cps',
-          },
           {
             label: 'Cookie',
             data: log.cookiesEarned,
             borderColor: LineColor[1],
+            showLine: true,
             pointRadius: 0,
             yAxisID: 'y_cookie',
+          },
+          {
+            label: 'CPS',
+            data: log.cookiesPsRaw,
+            showLine: true,
+            pointRadius: 0,
+            stepped: 'before',
+            borderColor: LineColor[0],
+            yAxisID: 'y_cps',
           },
         ],
       },
@@ -59,6 +76,7 @@ $(document).ready(function(){
         title: { display: true, text: 'クッキー' },
         plugins: { 
           legend: { position: 'right' },
+          zoom: zoomOptions
         },
         responsive: true,
         maintainAspectRatio: false,
@@ -79,15 +97,16 @@ $(document).ready(function(){
 
     // Object数グラフ.
     chartObjectAmount = new Chart($('#object-chart-canvas'), {
-      type: 'line',
+      type: 'scatter',
       data: {
-        labels: log.labels,
         datasets: log.objectsAmount.map(function(objectName, i) {
           return {
             label: ObjectName[i],
             data: log.objectsAmount[i],
             borderColor: LineColor[i],
             pointRadius: 0,
+            showLine: true,
+            stepped: 'before',
           }
         }),
       },
@@ -95,6 +114,7 @@ $(document).ready(function(){
         title: { display: true, text: 'オブジェクト数' },
         plugins: { 
           legend: { position: 'right' },
+          zoom: zoomOptions
         },
         responsive: true,
         maintainAspectRatio: false,

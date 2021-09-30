@@ -24,6 +24,8 @@ Game.registerMod("syaa_assist_mod",{
 		MOD.prefs.buyObject = 1;	// 自動購入するか？
 		MOD.prefs.buyCheckInterval = 30 * 3; // 自動購入のチェック間隔(フレーム).
 		MOD.prefs.sendLogInterval = 60 * 30; // ログ送信間隔(フレーム).
+		MOD.keepTick;	// 通しティック.
+		MOD.ready = 0;
 		MOD.showMenu = 0;
 
 		// ================================================================================
@@ -81,6 +83,9 @@ Game.registerMod("syaa_assist_mod",{
 		// クッキークリック.
 		// ================================================================================
 		MOD.sendClickEvent = function(elem) {
+			if (!elem) {
+				return;
+			}
 			let rect = elem.getBoundingClientRect();
 			let x = window.pageXOffset + rect.left + rect.width / 2;
 			let y = window.pageYOffset + rect.top + rect.height / 2;
@@ -126,19 +131,27 @@ Game.registerMod("syaa_assist_mod",{
 			if (!Game.ready) {
 				return;
 			}
+			if (!MOD.ready) {
+				return;
+			}
+
+			let tick = MOD.keepTick + Game.T;
+			if (!tick) {
+				return;
+			}
 
 			// クッキークリック.
-			if (MOD.prefs.bigClick && ((Game.T % MOD.prefs.bigClickInterval) == 0)) {
+			if (MOD.prefs.bigClick && ((tick % MOD.prefs.bigClickInterval) == 0)) {
 				MOD.clickBigCookie();
 			}
 
 			// ゴールドクッキークリック.
-			if (MOD.prefs.goldenClick && ((Game.T % MOD.prefs.goldenCheckInterval) == 0)) {
+			if (MOD.prefs.goldenClick && ((tick % MOD.prefs.goldenCheckInterval) == 0)) {
 				MOD.clickGoldenCookie();
 			}
 
 			// 購入.
-			if (MOD.prefs.buyObject && ((Game.T % MOD.prefs.buyCheckInterval) == 0)) {
+			if (MOD.prefs.buyObject && ((tick % MOD.prefs.buyCheckInterval) == 0)) {
 				let action = MOD.think();
 				if (action) {
 					action.exec();
@@ -146,8 +159,8 @@ Game.registerMod("syaa_assist_mod",{
 			}
 
 			// ログ送信.
-			if (((Game.T % MOD.prefs.sendLogInterval) == 0)) {
-				MOD.sendLog();
+			if (((tick % MOD.prefs.sendLogInterval) == 0)) {
+				MOD.sendContLog();
 			}
 		});
 
@@ -157,7 +170,18 @@ Game.registerMod("syaa_assist_mod",{
 			this.cps = MOD.getObjectCps(it);
 			this.price = it.getPrice(0);
 			this.exec = function() {
-				it.buy(1);
+				if (Game.cookies >= this.price) {
+					it.buy(1);
+					// ログ.
+					data = {
+						'type' : 'Object',
+						'id' : it.id,
+						'val0' : it.amount,
+						'val1' : 0,
+						'cookiesPsRaw' : Game.cookiesPsRaw
+					};
+					MOD.sendLog('event', data);
+				}
 			}
 		}
 		// アップグレード購入行動.
@@ -166,7 +190,9 @@ Game.registerMod("syaa_assist_mod",{
 			this.cps = MOD.guessUpgradeCps(it);
 			this.price = it.getPrice(0);
 			this.exec = function() {
-				it.buy(1);
+				if (Game.cookies >= price) {
+					it.buy(1);
+				}
 			}
 		}
 		// 待機行動.
@@ -254,36 +280,46 @@ Game.registerMod("syaa_assist_mod",{
 		}
 
 		// ログ保存.
-		MOD.sendLog = function() {
+		MOD.sendContLog = function() {
 			let data = {
-				bakeryName : Game.bakeryName,
-				seed : Game.seed,
 				fps : Game.fps,
 				cookies : Game.cookies,
-				cookiesPsRaw : Game.cookiesPsRaw,
 				cookiesEarned : Game.cookiesEarned,
-				objectsAmount : Game.ObjectsById.map(function(obj) {
-					return obj.amount;
-				})
 			};
-			
+			MOD.sendLog('cont', data);
+		}
+
+		// ログ保存.
+		MOD.sendLog = function(type, data) {
+			data['bakeryName'] = Game.bakeryName;
+			data['seed'] = Game.seed;
+			data['T'] = MOD.keepTick + Game.T;
+
 			let xhr = new XMLHttpRequest();
-			xhr.open('POST', 'http://127.0.0.1:28080/append_log');
+			xhr.open('POST', 'http://127.0.0.1:28080/log_' + type);
 			xhr.send(JSON.stringify(data));
 		}
 
+		Game.registerHook('reset', function(hard) {
+			if (hard) {
+				MOD.keepTick = 0;
+			}
+		});
+
 		//to finish off, we're replacing the big cookie picture with a cool cookie, why not (the image is in this mod's directory)
 		Game.Loader.Replace('perfectCookie.png',this.dir+'/gearedCookie.png');
+
+		MOD.ready = 1;
 	},
 	save:function(){
 		//use this to store persistent data associated with your mod
 		//note: as your mod gets more complex, you should consider storing a stringified JSON instead
-		return String(this.buttonClicks);
+		keepTick= this.keepTick + Game.T;
+		return String(keepTick);
 	},
 	load:function(str){
 		//do stuff with the string data you saved previously
-//		this.buttonClicks=parseInt(str||0);
-//		this.updateScore();
+		this.keepTick = parseFloat(str) || 0;
 	},
 	// UI 関連.
 });
