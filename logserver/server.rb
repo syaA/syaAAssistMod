@@ -104,10 +104,10 @@ def rpc_get_log_data(req)
 
   last_tick = cont_data['tick'][-1]
   labels = (last_tick / 30 / 60 + 0.5).to_i.times.map { |i| (i % 10 == 0) ? "#{i}" : "" }
-  cookiesEarned = cont_data['tick'].zip(cont_data['cookiesEarned']).map { |t, c|
+  cookiesEarned = [{ 'x' => 0, 'y' => 0 }] + cont_data['tick'].zip(cont_data['cookiesEarned']).map { |t, c|
     { 'x' => t / 30 / 60, 'y' => c }
   }
-  cookiesPsRaw = event_data['cookiesPsRaw'].map {|t, cps|
+  cookiesPsRaw = [{ 'x' => 0, 'y' => 0 }] + event_data['cookiesPsRaw'].map {|t, cps|
     { 'x' => t / 30 / 60, 'y' => cps }
   } + [{ 'x' => last_tick / 30 / 60, 'y' => event_data['cookiesPsRaw'][-1][1] }]
   objectsAmount = event_data['objectsAmount'].map { |objectAmount|
