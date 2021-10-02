@@ -61,13 +61,15 @@ class CookieClickerLogger
             'objectsCps' => [],
             'upgrade' => [],
             'achievement' => [],
-            'goldenCookie' => []
+            'goldenCookie' => [],
+            'lastTick' => 0,
           }
     File.open(@event_log_filename, 'rb') { |f|
       while true
         s = f.read(64)
         break if s.nil?
         tick, type, id, i0, i1, d0, d1, cps = s.unpack('dnnnndddx24')
+        ret['lastTick'] = tick if ret['lastTick'] < tick
         case type
           when Event_Object
             unless ret['objectsAmount'][id]

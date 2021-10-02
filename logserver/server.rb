@@ -102,7 +102,7 @@ def rpc_get_log_data(req)
   event_data = logger.get_event_data()
   cont_data = logger.get_cont_data()
 
-  last_tick = cont_data['tick'][-1]
+  last_tick = [cont_data['tick'][-1], event_data['lastTick']].max()
   labels = (last_tick / 30 / 60 + 0.5).to_i.times.map { |i| (i % 10 == 0) ? "#{i}" : "" }
   cookiesEarned = [{ 'x' => 0, 'y' => 0 }] + cont_data['tick'].zip(cont_data['cookiesEarned']).map { |t, c|
     { 'x' => t / 30 / 60, 'y' => c }
