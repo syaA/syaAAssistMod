@@ -140,6 +140,15 @@ Game.registerMod("syaa_assist_mod",{
 			let n = ss.childNodes.length;
 			for (let i=0; i<n; ++i) {
 				MOD.sendClickEvent(ss.childNodes[i]);
+				// ゴールデンクッキー.
+				data = {
+					'type' : 'GoldenCookie',
+					'id' : 0,
+					'val0' : 0,
+					'val1' : 0,
+					'cookiesPsRaw' : Game.cookiesPsRaw
+				};
+				MOD.sendLog('event', data);
 			}
 		}
 
