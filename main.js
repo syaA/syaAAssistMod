@@ -437,6 +437,18 @@ Game.registerMod("syaa_assist_mod",{
 			}
 		});
 
+		Game.registerHook('reincarnate', function() {
+			// 転生.
+			data = {
+				'type' : 'Reincarnate',
+				'id' : 0,
+				'val0' : 0,
+				'val1' : 0,
+				'cookiesPsRaw' : Game.cookiesPsRaw
+			};
+			MOD.sendLog('event', data);
+		});
+
 		//to finish off, we're replacing the big cookie picture with a cool cookie, why not (the image is in this mod's directory)
 		Game.Loader.Replace('perfectCookie.png',this.dir+'/gearedCookie.png');
 
