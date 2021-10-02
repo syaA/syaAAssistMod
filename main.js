@@ -224,7 +224,7 @@ Game.registerMod("syaa_assist_mod",{
 						'type' : 'Object',
 						'id' : it.id,
 						'val0' : it.amount,
-						'val1' : 0,
+						'val1' : it.storedTotalCps,
 						'cookiesPsRaw' : Game.cookiesPsRaw
 					};
 					MOD.sendLog('event', data);
