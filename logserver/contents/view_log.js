@@ -19,6 +19,13 @@ $(document).ready(function(){
     $.getJSON('http://127.0.0.1:28080/get_log_data', { logname: $('#select-log')[0].value }, function(data) {
       createChart(data)
     });
+
+    // リロードボタン.
+    $('#button-reload').bind('click', function() {
+      $.getJSON('http://127.0.0.1:28080/get_log_data', { logname: $('#select-log')[0].value }, function(data) {
+        createChart(data)
+      });
+    });
   });
 
   let chartCookie = null;
