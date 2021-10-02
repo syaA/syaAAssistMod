@@ -72,23 +72,15 @@ Game.registerMod("syaa_assist_mod",{
 		l('menuButton').after(MOD.createButton('dispInfo', 'dispInfoButton', 'DispInfo ON', 'Disp OFF', function(sw) {
 			let vis = sw ? '' : 'none'
 			for (let i=0; i<20; ++i) {
-				let rankDiv = l('product' + i + 'saRank');
+				let rankDiv = l('product' + i + 'saStatus');
 				if (rankDiv) {
 					rankDiv.style.display = vis;
-				}
-				let cpsDiv = l('product' + i + 'saCPS');
-				if (cpsDiv) {
-					cpsDiv.style.display = vis;
 				}
 			}
 			for (let i=0; i<128; ++i) {
-				let rankDiv = l('upgrade' + i + 'saRank');
+				let rankDiv = l('upgrade' + i + 'saStatus');
 				if (rankDiv) {
 					rankDiv.style.display = vis;
-				}
-				let cpsDiv = l('upgrade' + i + 'saCPS');
-				if (cpsDiv) {
-					cpsDiv.style.display = vis;
 				}
 			}
 		}));
@@ -180,9 +172,13 @@ Game.registerMod("syaa_assist_mod",{
 
 			// 購入.
 			if (MOD.prefs.buyObject && ((tick % MOD.prefs.buyCheckInterval) == 0)) {
-				let action = MOD.think();
-				if (action) {
-					action.exec();
+				let actions = MOD.think();
+				if (actions.length > 0) {
+					actions[0].exec();
+
+					actions.forEach(function(act, index) {
+						act.debugDrawRank(index + 1);
+					});
 				}
 			}
 
@@ -231,28 +227,26 @@ Game.registerMod("syaa_assist_mod",{
 				}
 			}
 			this.debugDrawRank = function(rank) {
-				let rankDivId = 'product' + it.id + 'saRank';
-				let rankDiv = l(rankDivId);
-				if (!rankDiv) {
-					rankDiv = document.createElement('div');
-					rankDiv.id = rankDivId;
-					rankDiv.style.backgroundColor = (rank == 1) ? '#f00' : '#600';
-					rankDiv.style.width = '30px';
-					rankDiv.style.textAlign = 'right';
-					l('productIcon' + it.id).appendChild(rankDiv);
+				let stateId = 'product' + it.id + 'saStatus';
+				let stateDiv = l(stateId);
+				if (!stateDiv) {
+					stateDiv = document.createElement('div');
+					stateDiv.id = stateId;
+					l('productIcon' + it.id).appendChild(stateDiv);
 				}
-				rankDiv.innerHTML = rank;
-				let cpsDivId = 'product' + it.id + 'saCPS';
-				let cpsDiv = l(cpsDivId);
-				if (!cpsDiv) {
-					cpsDiv = document.createElement('div');
-					cpsDiv.id = cpsDivId;
-					cpsDiv.style.backgroundColor = '#09f';
-					cpsDiv.style.width = '40px';
-					cpsDiv.style.textAlign = 'right';
-					l('productIcon' + it.id).appendChild(cpsDiv);
-				}
-				cpsDiv.innerHTML = (this.cps / (Game.cookiesPs||1) * 100).toFixed(1) +'%';
+				let cpsRatio = this.cps / (Game.cookiesPs||1) * 100;
+				let cookieRatio = Math.min(Game.cookies / this.price, 1) * 100;
+				stateDiv.innerHTML = `
+<div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:45px;">
+  ${rank}
+</div>
+<div style="background:linear-gradient(to left, #307000af ${cpsRatio}%, #202020af ${cpsRatio}%);width:45px;text-align:right">
+  +${(cpsRatio).toFixed(1)}%
+</div>
+<div style="background:linear-gradient(to left, #307000af ${cookieRatio}%, #202020af ${cookieRatio}%);width:45px;text-align:right">
+  ${(cookieRatio).toFixed(1)}%
+</div>
+`
 			}
 		}
 
@@ -297,28 +291,26 @@ Game.registerMod("syaa_assist_mod",{
 				}
 			}
 			this.debugDrawRank = function(rank) {
-				let rankDivId = 'upgrade' + this.shopIndex + 'saRank';
-				let rankDiv = l(rankDivId);
-				if (!rankDiv) {
-					rankDiv = document.createElement('div');
-					rankDiv.id = rankDivId;
-					rankDiv.style.backgroundColor = (rank == 1) ? '#f00' : '#600';
-					rankDiv.style.width = '30px';
-					rankDiv.style.textAlign = 'right';
-					l('upgrade' + this.shopIndex).appendChild(rankDiv);
+				let stateId = 'upgrade' + this.shopIndex + 'saStatus';
+				let stateDiv = l(stateId);
+				if (!stateDiv) {
+					stateDiv = document.createElement('div');
+					stateDiv.id = stateId;
+					l('upgrade' + this.shopIndex).appendChild(stateDiv);
 				}
-				rankDiv.innerHTML = rank;
-				let cpsDivId = 'upgrade' + this.shopIndex + 'saCPS'
-				let cpsDiv = l(cpsDivId);
-				if (!cpsDiv) {
-					cpsDiv = document.createElement('div');
-					cpsDiv.id = cpsDivId;
-					cpsDiv.style.backgroundColor = '#09f';
-					cpsDiv.style.width = '40px';
-					cpsDiv.style.textAlign = 'right';
-					l('upgrade' + this.shopIndex).appendChild(cpsDiv);
-				}
-				cpsDiv.innerHTML = (this.cps / (Game.cookiesPs||1) * 100).toFixed(1) +'%';
+				let cpsRatio = this.cps / (Game.cookiesPs||1) * 100;
+				let cookieRatio = Math.min(Game.cookies / this.price, 1) * 100;
+				stateDiv.innerHTML = `
+<div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:45px;opacity=1.0">
+  ${rank}
+</div>
+<div style="background:linear-gradient(to left, #307000af ${cpsRatio}%, #202020af ${cpsRatio}%);width:45px;text-align:right">
+  +${(cpsRatio).toFixed(1)}%
+</div>
+<div style="background:linear-gradient(to left, #307000af ${cookieRatio}%, #202020af ${cookieRatio}%);width:45px;text-align:right">
+  ${(cookieRatio).toFixed(1)}%
+</div>
+`
 			}
 		}
 		// 待機行動.
@@ -398,16 +390,12 @@ Game.registerMod("syaa_assist_mod",{
 			// その他行動.
 //			actions.push(new MOD.ActionWait(100));
 
-			// 最も効果的な行動を返す.
-			actions.sort(MOD.compareAction);
-
-			actions.forEach(function(act, index) {
-				act.debugDrawRank(index + 1);
-			});
+			// 行動の効果値でソート.
+			actions.sort(MOD.compareAction2);
 
 //			console.log(actions);
 
-			return actions[0];
+			return actions;
 		}
 
 		// ログ保存.
