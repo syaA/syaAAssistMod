@@ -442,7 +442,7 @@ Game.registerMod("syaa_assist_mod",{
 			data = {
 				'type' : 'Reincarnate',
 				'id' : 0,
-				'val0' : 0,
+				'val0' : Game.resets,
 				'val1' : 0,
 				'cookiesPsRaw' : Game.cookiesPsRaw
 			};
