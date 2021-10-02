@@ -12,6 +12,7 @@ class CookieClickerLogger
   Event_Upgrade = 2
   Event_Achivement = 3
   Event_GoldenCookie = 4
+  Event_Reincarnate = 5
   
   def initialize(base_filename)
     @base_filename = base_filename
@@ -36,6 +37,8 @@ class CookieClickerLogger
       type = Event_Achivement
     when 'GoldenCookie'
       type = Event_GoldenCookie
+    when 'Reincarnate'
+      type = Event_Reincarnate
     end
     @event_log_file << [data['T'], type, data['id'], data['val0'], data['val1'], data['cookiesPsRaw']].pack('dnnnnd')
     @event_log_file.flush
@@ -69,6 +72,8 @@ class CookieClickerLogger
             ret['cookiesPsRaw'] << [tick, cps]
           when Event_GoldenCookie
             ret['achivement'] << [tick, id]
+            ret['cookiesPsRaw'] << [tick, cps]
+          when Event_Reincarnate
             ret['cookiesPsRaw'] << [tick, cps]
         end
       end
