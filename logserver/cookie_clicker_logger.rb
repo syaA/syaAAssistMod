@@ -68,10 +68,10 @@ class CookieClickerLogger
             ret['upgrade'] << [tick, id, val0, val1]
             ret['cookiesPsRaw'] << [tick, cps]
           when Event_Achivement
-            ret['achivement'] << [tick, id]
+            ret['achievement'] << [tick, id]
             ret['cookiesPsRaw'] << [tick, cps]
           when Event_GoldenCookie
-            ret['achivement'] << [tick, id]
+            ret['goldenCookie'] << [tick, id]
             ret['cookiesPsRaw'] << [tick, cps]
           when Event_Reincarnate
             ret['cookiesPsRaw'] << [tick, cps]
