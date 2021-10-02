@@ -24,6 +24,7 @@ Game.registerMod("syaa_assist_mod",{
 		MOD.prefs.buyObject = 1;	// オブジェクト自動購入するか？
 		MOD.prefs.buyUpgrade = 1;	// アップグレード自動購入するか？
 		MOD.prefs.buyCheckInterval = 30 * 3; // 自動購入のチェック間隔(フレーム).
+		MOD.prefs.dispInfo = 1;	// 行動順位など表示.
 		MOD.prefs.sendLogInterval = 60 * 30; // ログ送信間隔(フレーム).
 		MOD.keepTick;	// 通しティック.
 		MOD.ready = 0;
@@ -68,6 +69,31 @@ Game.registerMod("syaa_assist_mod",{
 		l('buyObjectButton').style.display = "none"
 		l('menuButton').after(MOD.createButton('buyUpgrade', 'buyUpgradeButton', 'BuyUpgrade ON', 'BuyUpgrade OFF'));
 		l('buyUpgradeButton').style.display = "none"
+		l('menuButton').after(MOD.createButton('dispInfo', 'dispInfoButton', 'DispInfo ON', 'Disp OFF', function(sw) {
+			let vis = sw ? '' : 'none'
+			for (let i=0; i<20; ++i) {
+				let rankDiv = l('product' + i + 'saRank');
+				if (rankDiv) {
+					rankDiv.style.display = vis;
+				}
+				let cpsDiv = l('product' + i + 'saCPS');
+				if (cpsDiv) {
+					cpsDiv.style.display = vis;
+				}
+			}
+			for (let i=0; i<128; ++i) {
+				let rankDiv = l('upgrade' + i + 'saRank');
+				if (rankDiv) {
+					rankDiv.style.display = vis;
+				}
+				let cpsDiv = l('upgrade' + i + 'saCPS');
+				if (cpsDiv) {
+					cpsDiv.style.display = vis;
+				}
+			}
+		}));
+		l('dispInfoButton').style.display = "none"
+
 		// メニュー開く.
 		AddEvent(l('menuButton'), 'click', function(){
 			MOD.showMenu = 1 - MOD.showMenu;
@@ -76,11 +102,13 @@ Game.registerMod("syaa_assist_mod",{
 				l('goldenClickButton').style.display = "block"
 				l('buyObjectButton').style.display = "block"
 				l('buyUpgradeButton').style.display = "block"
+				l('dispInfoButton').style.display = "block"
 			} else {
 				l('bigClickButton').style.display = "none"
 				l('goldenClickButton').style.display = "none"
 				l('buyObjectButton').style.display = "none"
 				l('buyUpgradeButton').style.display = "none"
+				l('dispInfoButton').style.display = "none"
 			}
 		});
 
@@ -202,6 +230,30 @@ Game.registerMod("syaa_assist_mod",{
 					MOD.sendLog('event', data);
 				}
 			}
+			this.debugDrawRank = function(rank) {
+				let rankDivId = 'product' + it.id + 'saRank';
+				let rankDiv = l(rankDivId);
+				if (!rankDiv) {
+					rankDiv = document.createElement('div');
+					rankDiv.id = rankDivId;
+					rankDiv.style.backgroundColor = (rank == 1) ? '#f00' : '#600';
+					rankDiv.style.width = '30px';
+					rankDiv.style.textAlign = 'right';
+					l('productIcon' + it.id).appendChild(rankDiv);
+				}
+				rankDiv.innerHTML = rank;
+				let cpsDivId = 'product' + it.id + 'saCPS';
+				let cpsDiv = l(cpsDivId);
+				if (!cpsDiv) {
+					cpsDiv = document.createElement('div');
+					cpsDiv.id = cpsDivId;
+					cpsDiv.style.backgroundColor = '#09f';
+					cpsDiv.style.width = '40px';
+					cpsDiv.style.textAlign = 'right';
+					l('productIcon' + it.id).appendChild(cpsDiv);
+				}
+				cpsDiv.innerHTML = (this.cps / (Game.cookiesPs||1) * 100).toFixed(1) +'%';
+			}
 		}
 
 		// アップグレード CPS.
@@ -225,8 +277,9 @@ Game.registerMod("syaa_assist_mod",{
 
 		
 		// アップグレード購入行動.
-		MOD.ActionBuyUpgrade = function(it) {
+		MOD.ActionBuyUpgrade = function(it, shopIndex) {
 			this.it = it;
+			this.shopIndex = shopIndex;
 			this.cps = MOD.guessUpgradeCps(it);
 			this.price = it.getPrice(0);
 			this.exec = function() {
@@ -243,11 +296,36 @@ Game.registerMod("syaa_assist_mod",{
 					MOD.sendLog('event', data);
 				}
 			}
+			this.debugDrawRank = function(rank) {
+				let rankDivId = 'upgrade' + this.shopIndex + 'saRank';
+				let rankDiv = l(rankDivId);
+				if (!rankDiv) {
+					rankDiv = document.createElement('div');
+					rankDiv.id = rankDivId;
+					rankDiv.style.backgroundColor = (rank == 1) ? '#f00' : '#600';
+					rankDiv.style.width = '30px';
+					rankDiv.style.textAlign = 'right';
+					l('upgrade' + this.shopIndex).appendChild(rankDiv);
+				}
+				rankDiv.innerHTML = rank;
+				let cpsDivId = 'upgrade' + this.shopIndex + 'saCPS'
+				let cpsDiv = l(cpsDivId);
+				if (!cpsDiv) {
+					cpsDiv = document.createElement('div');
+					cpsDiv.id = cpsDivId;
+					cpsDiv.style.backgroundColor = '#09f';
+					cpsDiv.style.width = '40px';
+					cpsDiv.style.textAlign = 'right';
+					l('upgrade' + this.shopIndex).appendChild(cpsDiv);
+				}
+				cpsDiv.innerHTML = (this.cps / (Game.cookiesPs||1) * 100).toFixed(1) +'%';
+			}
 		}
 		// 待機行動.
 		MOD.ActionWait = function(value) {
 			this.value = value;
 			this.exec = function() {}
+			this.debugDrawRank = function(rank) {}
 		}
 		// 行動比較.
 		MOD.compareAction = function(a, b) {
@@ -313,7 +391,7 @@ Game.registerMod("syaa_assist_mod",{
 				// アップグレードを買う.
 				for (let i in Game.UpgradesInStore) {
 					let me = Game.UpgradesInStore[i];
-					actions.push(new MOD.ActionBuyUpgrade(me));
+					actions.push(new MOD.ActionBuyUpgrade(me, i));
 				}
 			}
 
@@ -322,6 +400,10 @@ Game.registerMod("syaa_assist_mod",{
 
 			// 最も効果的な行動を返す.
 			actions.sort(MOD.compareAction);
+
+			actions.forEach(function(act, index) {
+				act.debugDrawRank(index + 1);
+			});
 
 //			console.log(actions);
 
