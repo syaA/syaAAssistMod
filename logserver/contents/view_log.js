@@ -23,6 +23,7 @@ $(document).ready(function(){
 
   let chartCookie = null;
   let chartObjectAmount = null;
+  let chartObjectCps = null;
 
   const zoomOptions = {
     zoom: {
@@ -48,6 +49,10 @@ $(document).ready(function(){
     if (chartObjectAmount) {
      chartObjectAmount.destroy();
     }
+    if (chartObjectCps) {
+     chartObjectCps.destroy();
+    }
+
     // CPS/クッキー作成数 グラフ.
     chartCookie = new Chart($('#cookie-chart-canvas'), {
       type: 'scatter',
@@ -120,6 +125,33 @@ $(document).ready(function(){
         maintainAspectRatio: false,
       },
     });
+
+    // Object CPSグラフ.
+    chartObjectCps = new Chart($('#object-cps-chart-canvas'), {
+      type: 'scatter',
+      data: {
+        datasets: log.objectsCps.map(function(objectName, i) {
+          return {
+            label: ObjectName[i],
+            data: log.objectsCps[i],
+            borderColor: LineColor[i],
+            pointRadius: 0,
+            showLine: true,
+            stepped: 'before',
+          }
+        }),
+      },
+      options: {
+        title: { display: true, text: 'オブジェクト CPS' },
+        plugins: { 
+          legend: { position: 'right' },
+          zoom: zoomOptions
+        },
+        responsive: true,
+        maintainAspectRatio: false,
+      },
+    });
+    
   }
 
   // ログが選ばれたらグラフを更新.

@@ -115,12 +115,19 @@ def rpc_get_log_data(req)
       { 'x' => t / 30 / 60, 'y' => num }
     } + [{ 'x' => last_tick / 30 / 60, 'y' => objectAmount[-1][1] }]
   }
+  objectsCps = event_data['objectsCps'].map { |objectCps|
+    [{ 'x' => 0, 'y' => 0 }] + objectCps.map { |t, cps|
+      { 'x' => t / 30 / 60, 'y' => cps }
+    } + [{ 'x' => last_tick / 30 / 60, 'y' => objectCps[-1][1] }]
+  }
+
 
   return JSON.dump({
     'labels' => labels,
     'cookiesEarned' => cookiesEarned,
     'cookiesPsRaw' => cookiesPsRaw,
-    'objectsAmount' => objectsAmount
+    'objectsAmount' => objectsAmount,
+    'objectsCps' => objectsCps,
   });
 end
 

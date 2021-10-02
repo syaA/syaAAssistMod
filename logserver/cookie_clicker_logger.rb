@@ -40,7 +40,17 @@ class CookieClickerLogger
     when 'Reincarnate'
       type = Event_Reincarnate
     end
-    @event_log_file << [data['T'], type, data['id'], data['val0'], data['val1'], data['cookiesPsRaw']].pack('dnnnnd')
+    log_data = [
+      data['T'], 
+      type,
+      data['id'],
+      data['i0'],
+      data['i1'],
+      data['d0'],
+      data['d1'],
+      data['cookiesPsRaw'],
+    ]
+    @event_log_file << log_data.pack('dnnnndddx24') # 64byte
     @event_log_file.flush
   end
 
@@ -48,24 +58,29 @@ class CookieClickerLogger
   def get_event_data()
     ret = { 'cookiesPsRaw' => [],
             'objectsAmount' => [],
+            'objectsCps' => [],
             'upgrade' => [],
             'achievement' => [],
             'goldenCookie' => []
           }
     File.open(@event_log_filename, 'rb') { |f|
       while true
-        s = f.read(24)
+        s = f.read(64)
         break if s.nil?
-        tick, type, id, val0, val1, cps = s.unpack('dnnnnd')
+        tick, type, id, i0, i1, d0, d1, cps = s.unpack('dnnnndddx24')
         case type
           when Event_Object
             unless ret['objectsAmount'][id]
               ret['objectsAmount'][id] = Array.new
             end
-            ret['objectsAmount'][id] << [tick, val0]
+            ret['objectsAmount'][id] << [tick, i0]
+            unless ret['objectsCps'][id]
+              ret['objectsCps'][id] = Array.new
+            end
+            ret['objectsCps'][id] << [tick, d0]
             ret['cookiesPsRaw'] << [tick, cps]
           when Event_Upgrade
-            ret['upgrade'] << [tick, id, val0, val1]
+            ret['upgrade'] << [tick, id, i0, i1]
             ret['cookiesPsRaw'] << [tick, cps]
           when Event_Achivement
             ret['achievement'] << [tick, id]

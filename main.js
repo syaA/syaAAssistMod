@@ -23,7 +23,7 @@ Game.registerMod("syaa_assist_mod",{
 		MOD.prefs.goldenCheckInterval = 30 * 1;	// ゴールデンクッキーのチェック間隔(フレーム)
 		MOD.prefs.buyObject = 1;	// オブジェクト自動購入するか？
 		MOD.prefs.buyUpgrade = 1;	// アップグレード自動購入するか？
-		MOD.prefs.buyCheckInterval = 30 * 3; // 自動購入のチェック間隔(フレーム).
+		MOD.prefs.buyCheckInterval = 30 * 1; // 自動購入のチェック間隔(フレーム).
 		MOD.prefs.dispInfo = 1;	// 行動順位など表示.
 		MOD.prefs.sendLogInterval = 60 * 30; // ログ送信間隔(フレーム).
 		MOD.keepTick;	// 通しティック.
@@ -141,14 +141,7 @@ Game.registerMod("syaa_assist_mod",{
 			for (let i=0; i<n; ++i) {
 				MOD.sendClickEvent(ss.childNodes[i]);
 				// ゴールデンクッキー.
-				data = {
-					'type' : 'GoldenCookie',
-					'id' : 0,
-					'val0' : 0,
-					'val1' : 0,
-					'cookiesPsRaw' : Game.cookiesPsRaw
-				};
-				MOD.sendLog('event', data);
+				MOD.sendEventLog({ 'type' : 'GoldenCookie' });
 			}
 		}
 
@@ -224,15 +217,14 @@ Game.registerMod("syaa_assist_mod",{
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
 					it.buy(1);
+					Game.CalculateGains();
 					// ログ.
-					data = {
+					MOD.sendEventLog({
 						'type' : 'Object',
 						'id' : it.id,
-						'val0' : it.amount,
-						'val1' : it.storedTotalCps,
-						'cookiesPsRaw' : Game.cookiesPsRaw
-					};
-					MOD.sendLog('event', data);
+						'i0' : it.amount,
+						'd0' : it.storedTotalCps,
+					});
 				}
 			}
 			this.debugDrawRank = function(rank) {
@@ -288,15 +280,14 @@ Game.registerMod("syaa_assist_mod",{
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
 					it.buy(1);
+					Game.CalculateGains();
 					// ログ.
-					data = {
+					MOD.sendEventLog({
 						'type' : 'Upgrade',
 						'id' : it.id,
-						'val0' : it.icon[0],
-						'val1' : it.icon[1],
-						'cookiesPsRaw' : Game.cookiesPsRaw
-					};
-					MOD.sendLog('event', data);
+						'i0' : it.icon[0],
+						'i1' : it.icon[1],
+					});
 				}
 			}
 			this.debugDrawRank = function(rank) {
@@ -400,14 +391,14 @@ Game.registerMod("syaa_assist_mod",{
 //			actions.push(new MOD.ActionWait(100));
 
 			// 行動の効果値でソート.
-			actions.sort(MOD.compareAction2);
+			actions.sort(MOD.compareAction);
 
 //			console.log(actions);
 
 			return actions;
 		}
 
-		// ログ保存.
+		// ログ保存（連続データ）.
 		MOD.sendContLog = function() {
 			let data = {
 				fps : Game.fps,
@@ -415,6 +406,20 @@ Game.registerMod("syaa_assist_mod",{
 				cookiesEarned : Game.cookiesEarned,
 			};
 			MOD.sendLog('cont', data);
+		}
+
+		// ログ保存（イベント）
+		MOD.sendEventLog = function(hash) {
+			let data = {
+				'type' : hash['type'],
+				'id' : hash['id'] || 0,
+				'i0' : hash['i0'] || 0,
+				'i1' : hash['i1'] || 0,
+				'd0' : hash['d0'] || 0,
+				'd1' : hash['d1'] || 0,
+				'cookiesPsRaw' : Game.cookiesPsRaw,
+			};
+			MOD.sendLog('event', data);
 		}
 
 		// ログ保存.
@@ -444,6 +449,7 @@ Game.registerMod("syaa_assist_mod",{
 				'cookiesPsRaw' : Game.cookiesPsRaw
 			};
 			MOD.sendLog('event', data);
+			MOD.sendEventLog( { 'type' : 'Reincarnate', 'i0' : Game.resets });
 		});
 
 		//to finish off, we're replacing the big cookie picture with a cool cookie, why not (the image is in this mod's directory)
