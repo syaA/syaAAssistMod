@@ -253,21 +253,35 @@ Game.registerMod("syaa_assist_mod",{
 
 		// アップグレード CPS.
 		MOD.guessUpgradeCps = function(me) {
-			Game.CalculateGains();
-			let cps = Game.cookiesPs;
-			let clickCps = Game.computedMouseCps;
+			// ゴールデンクッキーに関するアップグレードは独自に計算.
+			// 大雑把に 50% 程度の Frenzy 効果のみで、CPS 増加期待値を計算する.
+			// 貯蓄状態の表現や、Frenzy 中の Lucky! などは乗っていないので本来よりも低め？
+			if (me.name == 'Lucky day') {
+				// Golden cookies appear twice as often
+				return (6 * 77 / 300 * 0.5 - 6 * 77 / 600 * 0.5) * Game.cookiesPs;
+			} else if (me.name == 'Serendipity') {
+				// Golden cookies appear twice as often
+				return (6 * 77 / 150 * 0.5 - 6 * 77 / 300 * 0.5 - 6 * 77 / 600 * 0.5) * Game.cookiesPs;
+			} else if (me.name == 'Get lucky') {
+				// Golden cookie effects last twice as long
+				return (6 * 154 / 150 * 0.5 - 6 * 77 / 150 * 0.5 - 6 * 77 / 300 * 0.5 - 6 * 77 / 600 * 0.5) * Game.cookiesPs;
+			} else {
+				// ゲーム本体の機能に任せる.
+				Game.CalculateGains();
+				let cps = Game.cookiesPs;
+				let clickCps = Game.computedMouseCps;
 
+				me.bought = 1;
+				Game.CalculateGains();
+
+				cpsInc = Math.max(Game.cookiesPs - cps, 0);
+				clickCpsInc = Math.max(Game.computedMouseCps - clickCps, 0);
 			
-			me.bought = 1;
-			Game.CalculateGains();
+				me.bought = 0;
+				Game.CalculateGains();
 
-			cpsInc = Math.max(Game.cookiesPs - cps, 0);
-			clickCpsInc = Math.max(Game.computedMouseCps - clickCps, 0);
-			
-			me.bought = 0;
-			Game.CalculateGains();
-
-			return cpsInc + clickCpsInc * 30 / MOD.prefs.bigClickInterval;
+				return cpsInc + clickCpsInc * 30 / MOD.prefs.bigClickInterval;
+			}
 		}
 
 		
