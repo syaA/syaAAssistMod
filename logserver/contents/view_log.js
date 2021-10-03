@@ -85,8 +85,8 @@ $(document).ready(function(){
         ],
       },
       options: {
-        title: { display: true, text: 'クッキー' },
         plugins: { 
+          title: { display: true, text: 'クッキー' },
           legend: { position: 'right' },
           zoom: zoomOptions
         },
@@ -123,8 +123,8 @@ $(document).ready(function(){
         }),
       },
       options: {
-        title: { display: true, text: 'オブジェクト数' },
         plugins: { 
+          title: { display: true, text: 'オブジェクト数' },
           legend: { position: 'right' },
           zoom: zoomOptions
         },
@@ -149,8 +149,8 @@ $(document).ready(function(){
         }),
       },
       options: {
-        title: { display: true, text: 'オブジェクト CPS' },
         plugins: { 
+          title: { display: true, text: 'オブジェクト CPS' },
           legend: { position: 'right' },
           zoom: zoomOptions
         },
