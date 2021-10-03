@@ -20,6 +20,8 @@ class CookieClickerLogger
     @event_log_file = open(@event_log_filename, 'ab')
     @cont_log_filename = base_filename + '.cont.log'
     @cont_log_file = open(@cont_log_filename, 'ab')
+    @mutex_event = Mutex.new
+    @mutex_cont = Mutex.new
   end
 
   def base_filename
@@ -50,8 +52,13 @@ class CookieClickerLogger
       data['d1'],
       data['cookiesPsRaw'],
     ]
-    @event_log_file << log_data.pack('dnnnndddx24') # 64byte
-    @event_log_file.flush
+    @mutex_event.lock
+    begin
+      @event_log_file << log_data.pack('dnnnndddx24') # 64byte
+      @event_log_file.flush
+    ensure
+      @mutex_event.unlock
+    end
   end
 
   # イベントデータ取得.
@@ -100,8 +107,13 @@ class CookieClickerLogger
 
   # 連続ログ記録.
   def log_cont_data(data)
-    @cont_log_file << [data['T'], data['fps'], data['cookiesEarned'], data['cookies']].pack('d*')
-    @cont_log_file.flush
+    @mutex_cont.lock
+    begin
+      @cont_log_file << [data['T'], data['fps'], data['cookiesEarned'], data['cookies']].pack('d*')
+      @cont_log_file.flush
+    ensure
+      @mutex_cont.unlock
+    end
   end
 
   # 連続ログ取得. [fps, cookiesEarned, cookies]
