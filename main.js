@@ -206,7 +206,11 @@ Game.registerMod("syaa_assist_mod",{
 			obj.amount--;
 			Game.CalculateGains();
 
-			return cpsInc + clickCpsInc * 30 / MOD.prefs.bigClickInterval;
+			if (MOD.prefs.bigClick) {
+				cpsInc += clickCpsInc * 30 / MOD.prefs.bigClickInterval;
+			}
+			
+			return cpsInc;
 		}
 
 		// オブジェクト購入行動.
@@ -280,7 +284,11 @@ Game.registerMod("syaa_assist_mod",{
 				me.bought = 0;
 				Game.CalculateGains();
 
-				return cpsInc + clickCpsInc * 30 / MOD.prefs.bigClickInterval;
+				if (MOD.prefs.bigClick) {
+					cpsInc += clickCpsInc * 30 / MOD.prefs.bigClickInterval;
+				}
+
+				return cpsInc;
 			}
 		}
 
@@ -351,7 +359,10 @@ Game.registerMod("syaa_assist_mod",{
 			let curCookie = Game.cookies;
 			let curCps = Game.cookiesPsRaw;
 			// クリックによる収入は正確に計算するのが難しい...。buf による効果がある部分とない部分がある.
-			let clickCps = Game.computedMouseCps * (30 / MOD.prefs.bigClickInterval) * (Game.cookiesPs / Game.cookiesPsRaw);
+			let clickCps = 0;
+			if (MOD.prefs.bigClick) {
+				clickCps = Game.computedMouseCps * (30 / MOD.prefs.bigClickInterval) * (Game.cookiesPs / Game.cookiesPsRaw);
+			}
 			curCps += clickCps;
 			cmp = function(a, b) { return (a > b) ? -1 : ((a < b) ? 1 : 0); }
 			if (((a.price < curCookie) && (b.price < curCookie)) ||
