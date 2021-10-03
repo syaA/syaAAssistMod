@@ -9,6 +9,7 @@ require_relative "./cookie_clicker_logger"
 
 
 LOG_DIR = './log'
+SAVE_DIR = './save'
 
 config = YAML.load_file('config.yaml')
 
@@ -83,6 +84,22 @@ def rpc_log_event(json)
   return ''
 end
 
+# セーブデータのバックアップ.
+def rpc_backup_save(json)
+  data = {
+    'bakeryName' => json['bakeryName'],
+    'seed' => json['seed'],
+    'save' => json['save'],
+  };
+  filename = Time.now.strftime('%Y-%m-%d-%H-%M-%S');
+
+  dir = File.join(SAVE_DIR, rename_for_filename(json['bakeryName']));
+  Dir.mkdir(dir) unless File.exist?
+  File.open(File.join(dir, filename), 'w') { |f|
+    f << JSON.dump(data);
+  }
+end
+
 # ログ数取得.
 def rpc_get_log_list(req)
   return JSON.dump( {
@@ -140,6 +157,7 @@ httpserver = WEBrick::HTTPServer.new(
 # RPC 関連.
 httpserver.mount("/log_cont", JsonRPCServlet, 'POST', method(:rpc_log_cont))
 httpserver.mount("/log_event", JsonRPCServlet, 'POST', method(:rpc_log_event))
+httpserver.mount("/backup_save", JsonRPCServlet, 'POST', method(:rpc_backup_save))
 httpserver.mount("/get_log_list", JsonRPCServlet, 'GET', method(:rpc_get_log_list))
 httpserver.mount("/get_log_data", JsonRPCServlet, 'GET', method(:rpc_get_log_data))
 httpserver.mount('/', WEBrick::HTTPServlet::FileHandler, 'contents/')
