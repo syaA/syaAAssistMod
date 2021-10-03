@@ -34,18 +34,18 @@ $(document).ready(function(){
 
   const zoomOptions = {
     zoom: {
-      wheel: {
-        enabled: true,
-      },
-      pinch: {
-        enabled: true,
-      },
+      wheel: { enabled: true, },
+      pinch: { enabled: true, },
       mode: 'xy',
     },
     pan: {
       enabled: true,
       mode: 'xy',
-    }
+    },
+    limits: {
+      x: {min: 0, minRange: 10},
+      y: {min: 0, minRange: 10}
+    },
   };
   // グラフ更新.
   createChart = function(log) {
