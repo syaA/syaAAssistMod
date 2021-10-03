@@ -311,9 +311,12 @@ Game.registerMod("syaa_assist_mod",{
 						'i1' : it.icon[1],
 					});
 					// 対象の建物があるなら、それらの CPS も更新する.
-					[it.buildingTie, it.building1, it.building2].forEach(function(objId) {
-						if (typeof objId != 'undefined') {
-							let obj = Game.ObjectsById[objId]
+					[it.buildingTie, it.building1, it.building2].forEach(function(building) {
+						if (typeof building != 'undefined') {
+							let obj = building;
+							if (typeof obj == 'number') {
+								obj = Game.ObjectsById[objId];
+							}
 							// ログ.
 							MOD.sendEventLog({
 								'type' : 'Object',
