@@ -302,6 +302,19 @@ Game.registerMod("syaa_assist_mod",{
 						'i0' : it.icon[0],
 						'i1' : it.icon[1],
 					});
+					// 対象の建物があるなら、それらの CPS も更新する.
+					[it.buildingTie, it.building1, it.building2].forEach(function(objId) {
+						if (typeof objId != 'undefined') {
+							let obj = Game.ObjectsById[objId]
+							// ログ.
+							MOD.sendEventLog({
+								'type' : 'Object',
+								'id' : obj.id,
+								'i0' : obj.amount,
+								'd0' : obj.storedTotalCps,
+							});
+						}
+					});
 				}
 			}
 			this.debugDrawRank = function(rank) {
