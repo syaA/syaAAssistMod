@@ -264,9 +264,9 @@ Game.registerMod("syaa_assist_mod",{
 			// 大雑把に 50% 程度の Frenzy 効果のみで、CPS 増加期待値を計算する.
 			// 貯蓄状態の表現や、Frenzy 中の Lucky! などは乗っていないので本来よりも低め？
 			if (Game.goldenCookieUpgrades.includes(me.name)) {
-				s0 = MOD.guessGoldenCookieStatus();
-				s1 = MOD.guessGoldenCookieStatus(me.name);
-				return (6 * s1.duration / s1.interval * 0.5 - 6 * s0.duration / s0.interval) * Game.cookiesPsRaw;
+				let s0 = MOD.guessGoldenCookieStatus();
+				let s1 = MOD.guessGoldenCookieStatus(me.name);
+				return (6 * s1.duration / s1.interval * 0.5 - 6 * s0.duration / s0.interval * 0.5) * Game.cookiesPsRaw;
 			} else {
 				// ゲーム本体の機能に任せる.
 				Game.CalculateGains();
