@@ -145,6 +145,92 @@ Game.registerMod("syaa_assist_mod",{
 			}
 		}
 
+		// クリック CPS
+		// Game.mouseCps() から一時的 buff の効果を抜いたもの.
+		MOD.mouseCpsRaw = function() {
+			var add=0;
+			if (Game.Has('Thousand fingers')) add+=		0.1;
+			if (Game.Has('Million fingers')) add*=		5;
+			if (Game.Has('Billion fingers')) add*=		10;
+			if (Game.Has('Trillion fingers')) add*=		20;
+			if (Game.Has('Quadrillion fingers')) add*=	20;
+			if (Game.Has('Quintillion fingers')) add*=	20;
+			if (Game.Has('Sextillion fingers')) add*=	20;
+			if (Game.Has('Septillion fingers')) add*=	20;
+			if (Game.Has('Octillion fingers')) add*=	20;
+			if (Game.Has('Nonillion fingers')) add*=	20;
+			
+			var num=0;
+			for (var i in Game.Objects) {num+=Game.Objects[i].amount;}
+			num-=Game.Objects['Cursor'].amount;
+			add=add*num;
+			if (Game.Has('Plastic mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Iron mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Titanium mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Adamantium mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Unobtainium mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Eludium mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Wishalloy mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Fantasteel mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Nevercrack mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Armythril mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Technobsidian mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Plasmarble mouse')) add+=Game.cookiesPsRaw*0.01;
+			if (Game.Has('Miraculite mouse')) add+=Game.cookiesPsRaw*0.01;
+			
+			if (Game.Has('Fortune #104')) add+=Game.cookiesPsRaw*0.01;
+			var mult=1;
+			
+			
+			if (Game.Has('Santa\'s helpers')) mult*=1.1;
+			if (Game.Has('Cookie egg')) mult*=1.1;
+			if (Game.Has('Halo gloves')) mult*=1.1;
+			if (Game.Has('Dragon claw')) mult*=1.03;
+			
+			if (Game.Has('Aura gloves'))
+			{
+				mult*=1+0.05*Math.min(Game.Objects['Cursor'].level,Game.Has('Luminous gloves')?20:10);
+			}
+			
+			mult*=Game.eff('click');
+			
+			if (Game.hasGod)
+			{
+				var godLvl=Game.hasGod('labor');
+				if (godLvl==1) mult*=1.15;
+				else if (godLvl==2) mult*=1.1;
+				else if (godLvl==3) mult*=1.05;
+			}
+/*			
+			for (var i in Game.buffs)
+			{
+				if (typeof Game.buffs[i].multClick != 'undefined') mult*=Game.buffs[i].multClick;
+			}
+*/			
+			//if (Game.hasAura('Dragon Cursor')) mult*=1.05;
+			mult*=1+Game.auraMult('Dragon Cursor')*0.05;
+			
+			var out=mult*Game.ComputeCps(1,Game.Has('Reinforced index finger')+Game.Has('Carpal tunnel prevention cream')+Game.Has('Ambidextrous'),add);
+			
+//			out=Game.runModHookOnValue('cookiesPerClick',out);
+			
+//			if (Game.hasBuff('Cursed finger')) out=Game.buffs['Cursed finger'].power;
+			return out;
+		}
+
+		MOD.computedMouseCpsRaw = 1;
+		Game.registerHook('cookiesPerClick', function(mouseCps) {
+			MOD.computedMouseCpsRaw = MOD.mouseCpsRaw();
+			return mouseCps;
+		});
+		MOD.getClickCpsRaw = function() {
+			if (!MOD.prefs.bigClick) {
+				return 0;
+			}
+
+			return MOD.computedMouseCpsRaw * 30 / MOD.prefs.bigClickInterval;
+		}
+
 		// ================================================================================
 		// 購入.
 		// ================================================================================
@@ -176,7 +262,9 @@ Game.registerMod("syaa_assist_mod",{
 			if (MOD.prefs.buyObject && ((tick % MOD.prefs.buyCheckInterval) == 0)) {
 				let actions = MOD.think();
 				if (actions.length > 0) {
-					actions[0].exec();
+					if (actions[0].cps > 0) {
+						actions[0].exec();
+					}
 
 					actions.forEach(function(act, index) {
 						act.debugDrawRank(index + 1);
@@ -194,23 +282,19 @@ Game.registerMod("syaa_assist_mod",{
 		// オブジェクト CPS.
 		MOD.guessObjectCps = function(obj) {
 			Game.CalculateGains();
-			let cps = Game.cookiesPs;
-			let clickCps = Game.computedMouseCps;
+			let cps = Game.cookiesPsRaw;
+			let clickCps = MOD.getClickCpsRaw();
 
 			obj.amount++;
 			Game.CalculateGains();
 
-			cpsInc = Math.max(Game.cookiesPs - cps, 0);
-			clickCpsInc = Math.max(Game.computedMouseCps - clickCps, 0);
+			cpsInc = Math.max(Game.cookiesPsRaw - cps, 0);
+			clickCpsInc = Math.max(MOD.getClickCpsRaw() - clickCps, 0);
 			
 			obj.amount--;
 			Game.CalculateGains();
 
-			if (MOD.prefs.bigClick) {
-				cpsInc += clickCpsInc * 30 / MOD.prefs.bigClickInterval;
-			}
-			
-			return cpsInc;
+			return cpsInc + clickCpsInc;
 		}
 
 		// オブジェクト購入行動.
@@ -242,7 +326,7 @@ Game.registerMod("syaa_assist_mod",{
 					stateDiv.id = stateId;
 					l('productIcon' + it.id).appendChild(stateDiv);
 				}
-				let cpsRatio = this.cps / (Game.cookiesPs||1) * 100;
+				let cpsRatio = this.cps / (Game.cookiesPsRaw||1) * 100;
 				let cookieRatio = Math.min(Game.cookies / this.price, 1) * 100;
 				stateDiv.innerHTML = `
 <div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:45px;">
@@ -270,23 +354,19 @@ Game.registerMod("syaa_assist_mod",{
 			} else {
 				// ゲーム本体の機能に任せる.
 				Game.CalculateGains();
-				let cps = Game.cookiesPs;
-				let clickCps = Game.computedMouseCps;
+				let cps = Game.cookiesPsRaw;
+				let clickCps = MOD.getClickCpsRaw();
 
 				me.bought = 1;
 				Game.CalculateGains();
 
-				cpsInc = Math.max(Game.cookiesPs - cps, 0);
-				clickCpsInc = Math.max(Game.computedMouseCps - clickCps, 0);
+				cpsInc = Math.max(Game.cookiesPsRaw - cps, 0);
+				clickCpsInc = Math.max(MOD.getClickCpsRaw() - clickCps, 0);
 			
 				me.bought = 0;
 				Game.CalculateGains();
 
-				if (MOD.prefs.bigClick) {
-					cpsInc += clickCpsInc * 30 / MOD.prefs.bigClickInterval;
-				}
-
-				return cpsInc;
+				return cpsInc + clickCpsInc;
 			}
 		}
 
@@ -336,7 +416,7 @@ Game.registerMod("syaa_assist_mod",{
 					stateDiv.id = stateId;
 					l('upgrade' + this.shopIndex).appendChild(stateDiv);
 				}
-				let cpsRatio = this.cps / (Game.cookiesPs||1) * 100;
+				let cpsRatio = this.cps / (Game.cookiesPsRaw||1) * 100;
 				let cookieRatio = Math.min(Game.cookies / this.price, 1) * 100;
 				stateDiv.innerHTML = `
 <div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:45px;opacity=1.0">
@@ -369,7 +449,7 @@ Game.registerMod("syaa_assist_mod",{
 					l('sectionLeft').insertAdjacentHTML('beforeend', `<div id=${stateId} style="position:absolute;z-index:200"></div>`);
 					stateDiv = l(stateId);
 				}
-				let cpsRatio = this.luckyCps / (Game.cookiesPs||1) * 100;
+				let cpsRatio = this.luckyCps / (Game.cookiesPsRaw||1) * 100;
 				let s = MOD.guessGoldenCookieStatus();
 				// Lucky!で得られる値
 				let luckyVal = Math.min( Game.cookies * 0.15, Game.cookiesPsRaw * 900 );
@@ -398,11 +478,7 @@ Game.registerMod("syaa_assist_mod",{
 		MOD.compareAction = function(a, b) {
 			let curCookie = Game.cookies;
 			let curCps = Game.cookiesPsRaw;
-			// クリックによる収入は正確に計算するのが難しい...。buf による効果がある部分とない部分がある.
-			let clickCps = 0;
-			if (MOD.prefs.bigClick) {
-				clickCps = Game.computedMouseCps * (30 / MOD.prefs.bigClickInterval) * (Game.cookiesPs / Game.cookiesPsRaw);
-			}
+			let clickCps = MOD.getClickCpsRaw();
 			curCps += clickCps;
 			cmp = function(a, b) { return (a > b) ? -1 : ((a < b) ? 1 : 0); }
 			if (((a.price < curCookie) && (b.price < curCookie)) ||
