@@ -315,7 +315,7 @@ Game.registerMod("syaa_assist_mod",{
 						if (typeof building != 'undefined') {
 							let obj = building;
 							if (typeof obj == 'number') {
-								obj = Game.ObjectsById[objId];
+								obj = Game.ObjectsById[obj];
 							}
 							// ログ.
 							MOD.sendEventLog({
