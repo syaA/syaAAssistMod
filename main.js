@@ -214,10 +214,13 @@ Game.registerMod("syaa_assist_mod",{
 		}
 
 		// オブジェクト購入行動.
-		MOD.ActionBuyObject = function(it) {
+		MOD.ActionBuyObject = function(it, luckyCps) {
 			this.it = it;
 			this.cps = MOD.guessObjectCps(it);
 			this.price = it.getPrice(0);
+			// 購入によってゴールデンクッキーの取得 CPS は下がる.
+			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0));
+			
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
 					it.buy(1);
@@ -246,7 +249,7 @@ Game.registerMod("syaa_assist_mod",{
   ${rank}
 </div>
 <div style="background:linear-gradient(to left, #307000af ${cpsRatio}%, #202020af ${cpsRatio}%);width:45px;text-align:right">
-  +${(cpsRatio).toFixed(1)}%
+  ${cpsRatio > 0 ? '+' : ''}${(cpsRatio).toFixed(1)}%
 </div>
 <div style="background:linear-gradient(to left, #307000af ${cookieRatio}%, #202020af ${cookieRatio}%);width:45px;text-align:right">
   ${(cookieRatio).toFixed(1)}%
@@ -260,15 +263,10 @@ Game.registerMod("syaa_assist_mod",{
 			// ゴールデンクッキーに関するアップグレードは独自に計算.
 			// 大雑把に 50% 程度の Frenzy 効果のみで、CPS 増加期待値を計算する.
 			// 貯蓄状態の表現や、Frenzy 中の Lucky! などは乗っていないので本来よりも低め？
-			if (me.name == 'Lucky day') {
-				// Golden cookies appear twice as often
-				return (6 * 77 / 300 * 0.5 - 6 * 77 / 600 * 0.5) * Game.cookiesPs;
-			} else if (me.name == 'Serendipity') {
-				// Golden cookies appear twice as often
-				return (6 * 77 / 150 * 0.5 - 6 * 77 / 300 * 0.5 - 6 * 77 / 600 * 0.5) * Game.cookiesPs;
-			} else if (me.name == 'Get lucky') {
-				// Golden cookie effects last twice as long
-				return (6 * 154 / 150 * 0.5 - 6 * 77 / 150 * 0.5 - 6 * 77 / 300 * 0.5 - 6 * 77 / 600 * 0.5) * Game.cookiesPs;
+			if (Game.goldenCookieUpgrades.includes(me.name)) {
+				s0 = MOD.guessGoldenCookieStatus();
+				s1 = MOD.guessGoldenCookieStatus(me.name);
+				return (6 * s1.duration / s1.interval * 0.5 - 6 * s0.duration / s0.interval) * Game.cookiesPsRaw;
 			} else {
 				// ゲーム本体の機能に任せる.
 				Game.CalculateGains();
@@ -294,11 +292,13 @@ Game.registerMod("syaa_assist_mod",{
 
 		
 		// アップグレード購入行動.
-		MOD.ActionBuyUpgrade = function(it, shopIndex) {
+		MOD.ActionBuyUpgrade = function(it, shopIndex, luckyCps) {
 			this.it = it;
 			this.shopIndex = shopIndex;
-			this.cps = MOD.guessUpgradeCps(it);
+			this.cps = MOD.guessUpgradeCps(it, luckyCps);
 			this.price = it.getPrice(0);
+			// 購入によってゴールデンクッキーの取得 CPS は下がる.
+			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0));
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
 					it.buy(1);
@@ -343,7 +343,7 @@ Game.registerMod("syaa_assist_mod",{
   ${rank}
 </div>
 <div style="background:linear-gradient(to left, #307000af ${cpsRatio}%, #202020af ${cpsRatio}%);width:45px;text-align:right">
-  +${(cpsRatio).toFixed(1)}%
+  ${cpsRatio > 0 ? '+' : ''}${(cpsRatio).toFixed(1)}%
 </div>
 <div style="background:linear-gradient(to left, #307000af ${cookieRatio}%, #202020af ${cookieRatio}%);width:45px;text-align:right">
   ${(cookieRatio).toFixed(1)}%
@@ -351,12 +351,49 @@ Game.registerMod("syaa_assist_mod",{
 `
 			}
 		}
-		// 待機行動.
-		MOD.ActionWait = function(value) {
-			this.value = value;
+		// 貯蓄行動.
+		MOD.ActionSaving = function(luckyCps) {
+			let nextCookies = Game.cookiesPs;
+			if (MOD.prefs.bigClick) {
+				nextCookies += Game.computedMouseCps * (30 / MOD.prefs.bigClickInterval);
+			}
+			this.cps = MOD.guessLuckyCps(Game.cookies + nextCookies) - luckyCps;
+			this.price = nextCookies;
+			this.luckyCps = luckyCps;
+
 			this.exec = function() {}
-			this.debugDrawRank = function(rank) {}
+			this.debugDrawRank = function(rank) {
+				let stateId = 'saving' + '0' +  'saStatus';
+				let stateDiv = l(stateId);
+				if (!stateDiv) {
+					l('sectionLeft').insertAdjacentHTML('beforeend', `<div id=${stateId} style="position:absolute;z-index:200"></div>`);
+					stateDiv = l(stateId);
+				}
+				let cpsRatio = this.luckyCps / (Game.cookiesPs||1) * 100;
+				let s = MOD.guessGoldenCookieStatus();
+				// Lucky!で得られる値
+				let luckyVal = Math.min( Game.cookies * 0.15, Game.cookiesPsRaw * 900 );
+				let luckyCps = luckyVal / s.interval * LuckyP * 0.5; // 2回に1回で 0.5.
+				// Frenzy 中の Lucky!
+				let frenzyLuckyVal = Math.min( Game.cookies * 0.15, Game.cookiesPsRaw * 900 * 7 );
+				let frenzyLuckyP = s.duration / s.interval * 0.8 * 0.5;
+				let frenzyLuckyCps = frenzyLuckyVal / s.interval * frenzyLuckyP * 0.5; // 2回に1回で 0.5.
+				let targetCookie = frenzyLuckyCps > luckyCps ? Game.cookiesPsRaw * 900 / 0.15 * 7 : Game.cookiesPsRaw * 900 / 0.15;
+				let cookieRatio = Math.min(Game.cookies / targetCookie, 1) * 100;
+				stateDiv.innerHTML = `
+<div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:45px;opacity=1.0">
+  ${rank}:Saving
+</div>
+<div style="background:linear-gradient(to left, #307000af ${cpsRatio}%, #202020af ${cpsRatio}%);width:45px;text-align:right">
+  ${cpsRatio > 0 ? '+' : ''}${(cpsRatio).toFixed(1)}%
+</div>
+<div style="background:linear-gradient(to left, #307000af ${cookieRatio}%, #202020af ${cookieRatio}%);width:45px;text-align:right">
+  ${(cookieRatio).toFixed(1)}%
+</div>
+`
+			}
 		}
+
 		// 行動比較.
 		MOD.compareAction = function(a, b) {
 			let curCookie = Game.cookies;
@@ -404,37 +441,85 @@ Game.registerMod("syaa_assist_mod",{
 				}
 			}
 		}
-		
+
+		// ゴールデンクッキー状態..
+		MOD.guessGoldenCookieStatus = function(newUpgrade) {
+			f = function(upgrade) { return Game.Has(upgrade) || (upgrade == newUpgrade) }
+			let interval = 600; // 平均発生間隔.
+			let duration = 77;	// Frenzy 効果期間
+			if (f('Lucky day')) { interval /= 2; }
+			if (f('Serendipity')) { interval /= 2;}
+			if (f('Get lucky')) { duration *= 2; }
+			if (f('Heavenly luck')) { interval *= 0.95; }
+			if (f('Green yeast digestives')) { interval *= 0.99; }
+			if (f('Lasting fortune')) { duration *= 1.1; }
+			if (f('Lucky digit')) { duration*=1.01; }
+			if (f('Lucky number')) { duration*=1.01; }
+			if (f('Green yeast digestives')) { duration*=1.01; }
+			if (f('Lucky payout')) { duration*=1.01; }
+			return { 'interval': interval, 'duration': duration };
+		}
+
+		// Lucky! の空いて確率.
+			const LuckyP = 0.4;
+		// Lucky! の推定 CpS
+		MOD.guessLuckyCps = function(cookies, interval, duration) {
+			if (!interval && !duration) {
+				let s = MOD.guessGoldenCookieStatus();
+				interval = s.interval;
+				duration = s.duration;
+			}
+			// Lucky!で得られる値
+			let luckyVal = Math.min( cookies * 0.15, Game.cookiesPsRaw * 900 );
+			let luckyCps = luckyVal / interval * LuckyP * 0.5; // 2回に1回で 0.5.
+			// Frenzy 中の Lucky!
+			let frenzyLuckyVal = Math.min( cookies * 0.15, Game.cookiesPsRaw * 900 * 7 );
+			let frenzyLuckyP = duration / interval * 0.8 * 0.5;
+			let frenzyLuckyCps = frenzyLuckyVal / interval * frenzyLuckyP * 0.5; // 2回に1回で 0.5.
+			return Math.max(luckyCps, frenzyLuckyCps);
+		}
+
 		// 考える.
 		MOD.think = function() {
 			// 可能な行動を列挙.
 			let actions = [];
 
+			// 貯蓄.
+			// ゴールデンクッキーの Lucky! で最大値を得られるように貯蓄する。
+			// Lucky! : 現在のクッキー の 15% or CpS の 900 倍の小さい方.
+			//          CpS の 900 倍の 100/15 倍 = 6000 Cps 分貯蓄する.
+			// Frenzy 中の Lucky! ： 42000 CpS 分貯蓄する.
+			//          Frenzy 持続時間 t, 平均 GC 発生間隔 T に対して、
+			//          t / T * 0.8 * 0.5 くらいと考える.
+			//          Frenzy の次の Lucky! の可能性が 80% くらい、おおよそ交互と考えて 50%.
+			// Lucky! の確率. 大体.
+			let goldenStatus = MOD.guessGoldenCookieStatus();
+			let luckyCps = MOD.guessLuckyCps(Game.cookies, goldenStatus.interval, goldenStatus.duration);
+
+			actions.push(new MOD.ActionSaving(luckyCps));
+			
+			// モノを買う.
 			if (MOD.prefs.buyObject) {
-				// モノを買う.
 				for (let i in Game.ObjectsById) {
 					let me = Game.ObjectsById[i];
 					if (!me.locked) {
-						actions.push(new MOD.ActionBuyObject(me));
+						actions.push(new MOD.ActionBuyObject(me, luckyCps));
 					}
 				}
 			}
 
+			// アップグレードを買う.
 			if (MOD.prefs.buyUpgrade) {
-				// アップグレードを買う.
 				for (let i in Game.UpgradesInStore) {
 					let me = Game.UpgradesInStore[i];
-					actions.push(new MOD.ActionBuyUpgrade(me, i));
+					actions.push(new MOD.ActionBuyUpgrade(me, i, luckyCps));
 				}
 			}
 
-			// その他行動.
-//			actions.push(new MOD.ActionWait(100));
 
 			// 行動の効果値でソート.
 			actions.sort(MOD.compareAction);
 
-//			console.log(actions);
 
 			return actions;
 		}
