@@ -1,5 +1,9 @@
 ﻿// 色の系列.
-const LineColor = [ '#4285f4','#ea4335','#fbbc04','#34a853','#ff6d01','#46bdc6','#7baaf7','#f07b72','#fcd04f','#71c287','#ff994d','#7ed1d7','#b3cefb','#f7b4ae']
+const LineColor = [
+  '#4285f4','#ea4335','#fbbc04','#34a853','#ff6d01','#46bdc6',
+  '#7baaf7','#f07b72','#fcd04f','#71c287','#ff994d','#7ed1d7',
+  '#b3cefb','#f7b4ae','#fde49b','#aedcba','#ffc599','#b5e5e8',
+  '#ecf3fe','#fdeceb','#fff8e6','#ebf6ee']
 const ObjectName = [
   'Cursor', 'Grandma', 'Farm', 'Mine', 'Factory', 'Bank', 'Temple', 'Wizard tower', 'Shipment', 'Alchemy lab', 'Portal', 'Time machine',
   'Antimatter condenser', 'Prism', 'Chancemaker', 'Fractal engine', 'Javascript console', 'Idleverse'
@@ -7,6 +11,7 @@ const ObjectName = [
 
 
 $(document).ready(function(){
+
   // ログのリストを取得.
   $.getJSON('http://127.0.0.1:28080/get_log_list', function(data) {
     data.logs.forEach(function(log) {
@@ -47,6 +52,17 @@ $(document).ready(function(){
       y: {min: 0, minRange: 10}
     },
   };
+
+  // ズーム.
+  zoomChart = function() {
+    let minTick = $('#slider-chart-min').val();
+    let maxTick = $('#slider-chart-max').val();
+
+    chartCookie.zoomScale('x', {min: minTick, max: maxTick}, 'default');
+    chartObjectAmount.zoomScale('x', {min: minTick, max: maxTick}, 'default');
+    chartObjectCps.zoomScale('x', {min: minTick, max: maxTick}, 'default');
+  }
+  
   // グラフ更新.
   createChart = function(log) {
     // すでにあれば破棄.
@@ -60,6 +76,61 @@ $(document).ready(function(){
      chartObjectCps.destroy();
     }
 
+    // Zoom 範囲スライダー.
+    $('#slider-chart-min').prop('min', 0);
+    $('#slider-chart-min').prop('max', log.lastTick);
+    $('#slider-chart-min').val(0);
+    $('#slider-chart-min').on('input', function() {
+      $('#number-chart-min').val($(this).val());
+    });
+    $('#slider-chart-min').on('change', function() {
+      zoomChart();
+    });
+    $('#number-chart-min').prop('min', 0);
+    $('#number-chart-min').prop('max', log.lastTick);
+    $('#number-chart-min').val(0);
+    $('#number-chart-min').on('input', function() {
+      $('#slider-chart-min').val($(this).val());
+    });
+    $('#number-chart-min').on('change', function() {
+      zoomChart();
+    });
+
+    $('#slider-chart-max').prop('min', 0);
+    $('#slider-chart-max').prop('max', log.lastTick);
+    $('#slider-chart-max').val(log.lastTick);
+    $('#slider-chart-max').on('input', function() {
+      $('#number-chart-max').val($(this).val());
+    });
+    $('#slider-chart-max').on('change', function() {
+      zoomChart();
+    });
+    $('#number-chart-max').prop('min', 0);
+    $('#number-chart-max').prop('max', log.lastTick);
+    $('#number-chart-max').val(log.lastTick);
+    $('#number-chart-max').on('input', function() {
+      $('#slider-chart-max').val($(this).val());
+    });
+    $('#number-chart-max').on('change', function() {
+      zoomChart();
+    });
+
+    // Zoom リセットボタン.
+    $('#button-chart-reset').on('click', function() {
+      chartCookie.resetZoom();
+      chartObjectAmount.resetZoom();
+      chartObjectCps.resetZoom();
+
+      $('#slider-chart-min').val(0);
+      $('#number-chart-min').val(0);
+      $('#slider-chart-max').val(log.lastTick);
+      $('#number-chart-max').val(log.lastTick);
+
+      zoomChart();
+    });
+
+
+
     // CPS/クッキー作成数 グラフ.
     chartCookie = new Chart($('#cookie-chart-canvas'), {
       type: 'scatter',
@@ -70,7 +141,7 @@ $(document).ready(function(){
             data: log.cookiesEarned,
             borderColor: LineColor[1],
             showLine: true,
-            pointRadius: 0,
+//            pointRadius: 0,
             yAxisID: 'y_cookie',
           },
           {
@@ -94,14 +165,14 @@ $(document).ready(function(){
         maintainAspectRatio: false,
         scales: {
           y_cps: {
-            //type: 'logarithmic',
             position: 'left',
-          },
-          y_cookie: {
-            position: 'right',
             grid: {
               drawOnChartArea: false, // only want the grid lines for one axis to show up
             },
+          },
+          y_cookie: {
+            position: 'right',
+//            type: 'logarithmic',
           },
         }
       },

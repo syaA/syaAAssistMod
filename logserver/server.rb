@@ -140,7 +140,7 @@ def rpc_get_log_data(req)
 
 
   return JSON.dump({
-    'labels' => labels,
+    'lastTick' => (last_tick / 30 / 60).to_i,
     'cookiesEarned' => cookiesEarned,
     'cookiesPsRaw' => cookiesPsRaw,
     'objectsAmount' => objectsAmount,

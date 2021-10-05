@@ -11,15 +11,26 @@
   </head>
   <body>
     <h1>CookieClicker ログ</h1>
-    <select id='select-log'></select>
-    <button id='button-reload'>リロード</button>
-    <div id="cookie-chart-container" style="position: relative; height:30vh; width:80vw;">
-      <canvas id="cookie-chart-canvas" style="display: block;"></canvas>
+    <div>
+      <select id='select-log'></select>
+      <button id='button-reload'>リロード</button>
     </div>
-    <div id="object-chart-container" style="position: relative; height:30vh; width:80vw;">
+    <div>
+      <button id='button-chart-reset'>Zoom リセット</button>
+    </div>
+    <div>
+      <label><input type="range" id='slider-chart-min'><input type="number" id='number-chart-min'> : min</label>
+    </div>
+    <div>
+      <label><input type="range" id='slider-chart-max'><input type="number" id='number-chart-max'> : max</label>
+    </div>
+    <div id="cookie-chart-container" style="position: relative; height:20vh; width:60vw;">
+      <canvas id="cookie-chart-canvas" style="display: inline-block;"></canvas>
+    </div>
+    <div id="object-chart-container" style="position: relative; height:20vh; width:60vw;">
       <canvas id="object-chart-canvas" style="display: block;"></canvas>
     </div>
-    <div id="object-cps-chart-container" style="position: relative; height:30vh; width:80vw;">
+    <div id="object-cps-chart-container" style="position: relative; height:20vh; width:60vw;">
       <canvas id="object-cps-chart-canvas" style="display: block;"></canvas>
     </div>
   </body>
