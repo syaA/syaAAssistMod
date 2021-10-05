@@ -461,13 +461,13 @@ Game.registerMod("syaa_assist_mod",{
 				let targetCookie = frenzyLuckyCps > luckyCps ? Game.cookiesPsRaw * 900 / 0.15 * 7 : Game.cookiesPsRaw * 900 / 0.15;
 				let cookieRatio = Math.min(Game.cookies / targetCookie, 1) * 100;
 				stateDiv.innerHTML = `
-<div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:45px;opacity=1.0">
+<div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:60px;opacity=1.0">
   ${rank}:Saving
 </div>
-<div style="background:linear-gradient(to left, #307000af ${cpsRatio}%, #202020af ${cpsRatio}%);width:45px;text-align:right">
+<div style="background:linear-gradient(to left, #307000af ${cpsRatio}%, #202020af ${cpsRatio}%);width:60px;text-align:right">
   ${cpsRatio > 0 ? '+' : ''}${(cpsRatio).toFixed(1)}%
 </div>
-<div style="background:linear-gradient(to left, #307000af ${cookieRatio}%, #202020af ${cookieRatio}%);width:45px;text-align:right">
+<div style="background:linear-gradient(to left, #307000af ${cookieRatio}%, #202020af ${cookieRatio}%);width:60px;text-align:right">
   ${(cookieRatio).toFixed(1)}%
 </div>
 `
