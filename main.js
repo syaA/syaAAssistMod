@@ -259,7 +259,7 @@ Game.registerMod("syaa_assist_mod",{
 			}
 
 			// 購入.
-			if (MOD.prefs.buyObject && ((tick % MOD.prefs.buyCheckInterval) == 0)) {
+			if ((tick % MOD.prefs.buyCheckInterval) == 0) {
 				let actions = MOD.think();
 				if (actions.length > 0) {
 					if (actions[0].cps > 0) {
@@ -302,8 +302,6 @@ Game.registerMod("syaa_assist_mod",{
 			this.it = it;
 			this.cps = MOD.guessObjectCps(it);
 			this.price = it.getPrice(0);
-			// 購入によってゴールデンクッキーの取得 CPS は下がる.
-			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0));
 			
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
@@ -349,8 +347,10 @@ Game.registerMod("syaa_assist_mod",{
 			// 貯蓄状態の表現や、Frenzy 中の Lucky! などは乗っていないので本来よりも低め？
 			if (Game.goldenCookieUpgrades.includes(me.name)) {
 				let s0 = MOD.guessGoldenCookieStatus();
+				let s0interval = s0.maxInterval;
 				let s1 = MOD.guessGoldenCookieStatus(me.name);
-				return (6 * s1.duration / s1.interval * 0.5 - 6 * s0.duration / s0.interval * 0.5) * Game.cookiesPsRaw;
+				let s1interval = s1.maxInterval;
+				return (6 * s1.duration / s1interval * 0.5 - 6 * s0.duration / s0interval * 0.5) * Game.cookiesPsRaw;
 			} else {
 				// ゲーム本体の機能に任せる.
 				Game.CalculateGains();
@@ -377,8 +377,6 @@ Game.registerMod("syaa_assist_mod",{
 			this.shopIndex = shopIndex;
 			this.cps = MOD.guessUpgradeCps(it, luckyCps);
 			this.price = it.getPrice(0);
-			// 購入によってゴールデンクッキーの取得 CPS は下がる.
-			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0));
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
 					it.buy(1);
@@ -437,9 +435,10 @@ Game.registerMod("syaa_assist_mod",{
 			if (MOD.prefs.bigClick) {
 				nextCookies += Game.computedMouseCps * (30 / MOD.prefs.bigClickInterval);
 			}
-			this.cps = MOD.guessLuckyCps(Game.cookies + nextCookies) - luckyCps;
+			this.cps = MOD.guessLuckyCps(Game.cookies + nextCookies, Game.cookiesPsRaw).cps - luckyCps;
 			this.price = nextCookies;
 			this.luckyCps = luckyCps;
+			this.isSaving = true;
 
 			this.exec = function() {}
 			this.debugDrawRank = function(rank) {
@@ -449,16 +448,10 @@ Game.registerMod("syaa_assist_mod",{
 					l('sectionLeft').insertAdjacentHTML('beforeend', `<div id=${stateId} style="position:absolute;z-index:200"></div>`);
 					stateDiv = l(stateId);
 				}
-				let cpsRatio = this.luckyCps / (Game.cookiesPsRaw||1) * 100;
-				let s = MOD.guessGoldenCookieStatus();
-				// Lucky!で得られる値
-				let luckyVal = Math.min( Game.cookies * 0.15, Game.cookiesPsRaw * 900 );
-				let luckyCps = luckyVal / s.interval * LuckyP * 0.5; // 2回に1回で 0.5.
-				// Frenzy 中の Lucky!
-				let frenzyLuckyVal = Math.min( Game.cookies * 0.15, Game.cookiesPsRaw * 900 * 7 );
-				let frenzyLuckyP = s.duration / s.interval * 0.8 * 0.5;
-				let frenzyLuckyCps = frenzyLuckyVal / s.interval * frenzyLuckyP * 0.5; // 2回に1回で 0.5.
-				let targetCookie = frenzyLuckyCps > luckyCps ? Game.cookiesPsRaw * 900 / 0.15 * 7 : Game.cookiesPsRaw * 900 / 0.15;
+				let lucky = MOD.guessLuckyCps(Game.cookies, Game.cookiesPsRaw);
+				let cpsRatio = lucky.cps / (Game.cookiesPsRaw||1) * 100;
+
+				let targetCookie = lucky.frenzyLuckyCps > lucky.luckyCps ? Game.cookiesPsRaw * 900 / 0.15 * 7 : Game.cookiesPsRaw * 900 / 0.15;
 				let cookieRatio = Math.min(Game.cookies / targetCookie, 1) * 100;
 				stateDiv.innerHTML = `
 <div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:60px;opacity=1.0">
@@ -481,8 +474,16 @@ Game.registerMod("syaa_assist_mod",{
 			let clickCps = MOD.getClickCpsRaw();
 			curCps += clickCps;
 			cmp = function(a, b) { return (a > b) ? -1 : ((a < b) ? 1 : 0); }
-			if (((a.price < curCookie) && (b.price < curCookie)) ||
-					((a.price > curCookie) && (b.price > curCookie))) {
+			if (a.isSaving) {
+				// 貯蓄行動を比較する時は購入によって cps が下がることを計算に入れる.
+				let bcps = b.cps - (a.luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - b.price, 0), Game.cookiesPsRaw + b.cps).cps);
+				return cmp(a.cps / a.price, bcps / b.price);
+			} else if (b.isSaving) {
+				// 貯蓄行動を比較する時は購入によって cps が下がることを計算に入れる.
+				let acps = a.cps - (b.luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - a.price, 0), Game.cookiesPsRaw + a.cps).cps);
+				return cmp(acps / a.price, b.cps / b.price);
+			} else if (((a.price < curCookie) && (b.price < curCookie)) ||
+								 ((a.price > curCookie) && (b.price > curCookie))) {
 				// どっちも買えるか、どっちも買えない.
 				// CPS / Price で比較する.
 				return cmp(a.cps / a.price, b.cps / b.price);
@@ -521,38 +522,46 @@ Game.registerMod("syaa_assist_mod",{
 		// ゴールデンクッキー状態..
 		MOD.guessGoldenCookieStatus = function(newUpgrade) {
 			f = function(upgrade) { return Game.Has(upgrade) || (upgrade == newUpgrade) }
-			let interval = 600; // 平均発生間隔.
+			let minInterval = 409;	// wiki より.
+			let maxInterval = 482;
 			let duration = 77;	// Frenzy 効果期間
-			if (f('Lucky day')) { interval /= 2; }
-			if (f('Serendipity')) { interval /= 2;}
+			if (f('Lucky day')) { minInterval /= 2; maxInterval /= 2; }
+			if (f('Serendipity')) { minInterval /= 2; maxInterval /= 2; }
 			if (f('Get lucky')) { duration *= 2; }
-			if (f('Heavenly luck')) { interval *= 0.95; }
-			if (f('Green yeast digestives')) { interval *= 0.99; }
+			if (f('Heavenly luck')) { minInterval *= 0.95; maxInterval /= 2; }
+			if (f('Green yeast digestives')) { minInterval *= 0.99; maxInterval /= 2; }
 			if (f('Lasting fortune')) { duration *= 1.1; }
 			if (f('Lucky digit')) { duration*=1.01; }
 			if (f('Lucky number')) { duration*=1.01; }
 			if (f('Green yeast digestives')) { duration*=1.01; }
 			if (f('Lucky payout')) { duration*=1.01; }
-			return { 'interval': interval, 'duration': duration };
+			return { 'minInterval': minInterval, 'maxInterval': maxInterval, 'duration': duration };
 		}
 
-		// Lucky! の空いて確率.
+		// Lucky! の確率.
 			const LuckyP = 0.4;
+		// Frenzy のあとに Lucky! が出る確率
+		let frenzyLuckyP = 0.8;
+
 		// Lucky! の推定 CpS
-		MOD.guessLuckyCps = function(cookies, interval, duration) {
-			if (!interval && !duration) {
-				let s = MOD.guessGoldenCookieStatus();
-				interval = s.interval;
-				duration = s.duration;
+		MOD.guessLuckyCps = function(cookies, cps, st) {
+			if (!MOD.prefs.goldenClick) {
+				return 0;
 			}
+			if (!st) {
+				st = MOD.guessGoldenCookieStatus();
+			}
+			let interval = st.maxInterval;
 			// Lucky!で得られる値
-			let luckyVal = Math.min( cookies * 0.15, Game.cookiesPsRaw * 900 );
+			let luckyVal = Math.min( cookies * 0.15, cps * 900 );
 			let luckyCps = luckyVal / interval * LuckyP * 0.5; // 2回に1回で 0.5.
 			// Frenzy 中の Lucky!
-			let frenzyLuckyVal = Math.min( cookies * 0.15, Game.cookiesPsRaw * 900 * 7 );
-			let frenzyLuckyP = duration / interval * 0.8 * 0.5;
-			let frenzyLuckyCps = frenzyLuckyVal / interval * frenzyLuckyP * 0.5; // 2回に1回で 0.5.
-			return Math.max(luckyCps, frenzyLuckyCps);
+			let frenzyLuckyCps = 0;
+			if (st.minInterval < st.duration) {
+				let frenzyLuckyVal = Math.min( cookies * 0.15, cps * 900 * 7 );
+				let frenzyLuckyCps = frenzyLuckyVal / interval * frenzyLuckyP * 0.5; // 2回に1回で 0.5.
+			}
+			return { 'cps':Math.max(luckyCps, frenzyLuckyCps), 'luckyCps':luckyCps, 'frenzyLuckyCps':frenzyLuckyCps };
 		}
 
 		// 考える.
@@ -570,7 +579,7 @@ Game.registerMod("syaa_assist_mod",{
 			//          Frenzy の次の Lucky! の可能性が 80% くらい、おおよそ交互と考えて 50%.
 			// Lucky! の確率. 大体.
 			let goldenStatus = MOD.guessGoldenCookieStatus();
-			let luckyCps = MOD.guessLuckyCps(Game.cookies, goldenStatus.interval, goldenStatus.duration);
+			let luckyCps = MOD.guessLuckyCps(Game.cookies, Game.cookiesPsRaw, goldenStatus).cps;
 
 			actions.push(new MOD.ActionSaving(luckyCps));
 			
