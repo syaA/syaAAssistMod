@@ -278,6 +278,7 @@ Game.registerMod("syaa_assist_mod",{
 			}
 		});
 
+		// CPS を
 
 		// オブジェクト CPS.
 		MOD.guessObjectCps = function(obj) {
@@ -302,7 +303,9 @@ Game.registerMod("syaa_assist_mod",{
 			this.it = it;
 			this.cps = MOD.guessObjectCps(it);
 			this.price = it.getPrice(0);
-			
+			// 購入によって cps が下がることを計算に入れる.
+			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0), Game.cookiesPsRaw + this.cps).cps;
+
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
 					it.buy(1);
@@ -324,7 +327,7 @@ Game.registerMod("syaa_assist_mod",{
 					stateDiv.id = stateId;
 					l('productIcon' + it.id).appendChild(stateDiv);
 				}
-				let cpsRatio = this.cps / (Game.cookiesPsRaw||1) * 100;
+				let cpsRatio = this.cps / ((Game.cookiesPsRaw||1) + MOD.getClickCpsRaw()) * 100;
 				let cookieRatio = Math.min(Game.cookies / this.price, 1) * 100;
 				stateDiv.innerHTML = `
 <div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:45px;">
@@ -377,6 +380,9 @@ Game.registerMod("syaa_assist_mod",{
 			this.shopIndex = shopIndex;
 			this.cps = MOD.guessUpgradeCps(it, luckyCps);
 			this.price = it.getPrice(0);
+			// 購入によって cps が下がることを計算に入れる.
+			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0), Game.cookiesPsRaw + this.cps).cps;
+
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
 					it.buy(1);
@@ -414,7 +420,7 @@ Game.registerMod("syaa_assist_mod",{
 					stateDiv.id = stateId;
 					l('upgrade' + this.shopIndex).appendChild(stateDiv);
 				}
-				let cpsRatio = this.cps / (Game.cookiesPsRaw||1) * 100;
+				let cpsRatio = this.cps / ((Game.cookiesPsRaw||1) + MOD.getClickCpsRaw()) * 100;
 				let cookieRatio = Math.min(Game.cookies / this.price, 1) * 100;
 				stateDiv.innerHTML = `
 <div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:45px;opacity=1.0">
@@ -431,12 +437,10 @@ Game.registerMod("syaa_assist_mod",{
 		}
 		// 貯蓄行動.
 		MOD.ActionSaving = function(luckyCps) {
-			let nextCookies = Game.cookiesPs;
-			if (MOD.prefs.bigClick) {
-				nextCookies += Game.computedMouseCps * (30 / MOD.prefs.bigClickInterval);
-			}
-			this.cps = MOD.guessLuckyCps(Game.cookies + nextCookies, Game.cookiesPsRaw).cps - luckyCps;
-			this.price = nextCookies;
+			let s = MOD.guessGoldenCookieStatus();
+			let nextCookies = Game.cookies + Game.cookiesPsRaw + MOD.getClickCpsRaw();
+			this.cps = MOD.guessLuckyCps(nextCookies, Game.cookiesPsRaw, s).cps - luckyCps;
+			this.price = nextCookies * s.maxInterval;
 			this.luckyCps = luckyCps;
 			this.isSaving = true;
 
@@ -448,17 +452,21 @@ Game.registerMod("syaa_assist_mod",{
 					l('sectionLeft').insertAdjacentHTML('beforeend', `<div id=${stateId} style="position:absolute;z-index:200"></div>`);
 					stateDiv = l(stateId);
 				}
+				let cpsRatio = this.cps / ((Game.cookiesPsRaw||1) + MOD.getClickCpsRaw()) * 100;
 				let lucky = MOD.guessLuckyCps(Game.cookies, Game.cookiesPsRaw);
-				let cpsRatio = lucky.cps / (Game.cookiesPsRaw||1) * 100;
+				let cpsLuckyRatio = lucky.cps / ((Game.cookiesPsRaw||1) + MOD.getClickCpsRaw()) * 100;
 
 				let targetCookie = lucky.frenzyLuckyCps > lucky.luckyCps ? Game.cookiesPsRaw * 900 / 0.15 * 7 : Game.cookiesPsRaw * 900 / 0.15;
-				let cookieRatio = Math.min(Game.cookies / targetCookie, 1) * 100;
+				let cookieRatio = Game.cookies / targetCookie * 100;
 				stateDiv.innerHTML = `
 <div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:60px;opacity=1.0">
   ${rank}:Saving
 </div>
 <div style="background:linear-gradient(to left, #307000af ${cpsRatio}%, #202020af ${cpsRatio}%);width:60px;text-align:right">
   ${cpsRatio > 0 ? '+' : ''}${(cpsRatio).toFixed(1)}%
+</div>
+<div style="background:linear-gradient(to left, #307000af ${cpsLuckyRatio}%, #202020af ${cpsLuckyRatio}%);width:60px;text-align:right">
+  ${cpsLuckyRatio > 0 ? '+' : ''}${(cpsLuckyRatio).toFixed(1)}%
 </div>
 <div style="background:linear-gradient(to left, #307000af ${cookieRatio}%, #202020af ${cookieRatio}%);width:60px;text-align:right">
   ${(cookieRatio).toFixed(1)}%
@@ -474,49 +482,32 @@ Game.registerMod("syaa_assist_mod",{
 			let clickCps = MOD.getClickCpsRaw();
 			curCps += clickCps;
 			cmp = function(a, b) { return (a > b) ? -1 : ((a < b) ? 1 : 0); }
-			if (a.isSaving) {
-				// 貯蓄行動を比較する時は購入によって cps が下がることを計算に入れる.
-				let bcps = b.cps - (a.luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - b.price, 0), Game.cookiesPsRaw + b.cps).cps);
-				return cmp(a.cps / a.price, bcps / b.price);
-			} else if (b.isSaving) {
-				// 貯蓄行動を比較する時は購入によって cps が下がることを計算に入れる.
-				let acps = a.cps - (b.luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - a.price, 0), Game.cookiesPsRaw + a.cps).cps);
-				return cmp(acps / a.price, b.cps / b.price);
-			} else if (((a.price < curCookie) && (b.price < curCookie)) ||
-								 ((a.price > curCookie) && (b.price > curCookie))) {
-				// どっちも買えるか、どっちも買えない.
-				// CPS / Price で比較する.
+			// 参考:https://www.reddit.com/r/CookieClicker/comments/1lsuov/yet_another_calculator_this_one_in_htmljavascript/cc3eqs7/
+			func = function(o) { return o.price / curCps + o.price / o.cps; }
+//			return cmp(func(b), func(a));
+//*
+			// どちらを先に買ったほうが得かを判定する.
+			// A を先に買う場合.
+			let aWait = (a.price < curCookie) ? 0 : ((a.price - curCookie) / curCps);	// a を買うまでにかかる時間.
+			let aAfterCookie = Math.max(curCookie - a.price, 0);	// a を買ったあとのクッキー. // max(0) にすべきか.
+			let abWait = aWait + ((b.price < aAfterCookie) ? 0 : ((b.price - aAfterCookie) / (curCps + a.cps))); // a を買ったあと b を買うのにかかる時間.
+			// B を先に買う場合.
+			let bWait = (b.price < curCookie) ? 0 : ((b.price - curCookie) / curCps);
+			let bAfterCookie = Math.max(curCookie - b.price, 0);
+			let baWait = bWait + ((a.price < bAfterCookie) ? 0 : ((a.price - bAfterCookie) / (curCps + b.cps)));
+
+			if (((abWait == 0) && (baWait == 0)) || (a.price == b.price)) {
 				return cmp(a.cps / a.price, b.cps / b.price);
 			} else {
-				// 買えるものと買えないものの比較.
-				// 買えない方を単に待った場合と、買える方を買ってから買えない方を待った場合で、比較.
-				let canBuy = (a.price < curCookie) ? a : b;
-				let cannotBuy = (canBuy == a) ? b : a;
-				if (canBuy.cps / canBuy.price > cannotBuy.cps / cannotBuy.price) {
-					// 変える方が効率的なときはそちらを買う.
-					if (canBuy == a) {
-						return -1;
-					} else {
-						return 1;
-					}
-				} else
-				{
-					// 買えない方を待った場合の時間.
-					let waitCannotBuy = (cannotBuy.price - curCookie) / curCps;
-					let valueCannotBuy = cannotBuy.cps / waitCannotBuy;
-					// 買える方を買ってから待った場合の時間.
-					let afterCookie = curCookie - canBuy.price;
-					let afterCps = curCps + canBuy.cps;
-					let waitCanBuy = (cannotBuy.price - afterCookie) / afterCps;
-					let valueCanBuy = (canBuy.cps + cannotBuy.cps) / waitCanBuy;
-					// 結果.
-					let ret = cmp(valueCanBuy, valueCannotBuy);
-					if (canBuy == b) {
-						ret *= -1;
-					}
-					return ret;
+				console.assert(abWait != 0);
+				console.assert(baWait != 0);
+				if (a.price < b.price) {
+					return cmp((a.cps + b.cps) / abWait, b.cps / bWait);
+				} else {
+					return cmp(a.cps / aWait, (a.cps + b.cps) / baWait);
 				}
 			}
+//*/
 		}
 
 		// ゴールデンクッキー状態..
