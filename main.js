@@ -490,7 +490,7 @@ Game.registerMod("syaa_assist_mod",{
 			cmp = function(a, b) { return (a > b) ? -1 : ((a < b) ? 1 : 0); }
 			// 参考:https://www.reddit.com/r/CookieClicker/comments/1lsuov/yet_another_calculator_this_one_in_htmljavascript/cc3eqs7/
 			func = function(o) {
-				if (o.cps < 0) {
+				if (o.cps <= 0) {
 					return Infinity;
 				} else {
 					return o.price / curCps + o.price / o.cps;
