@@ -20,8 +20,8 @@ end
 
 # ログのファイル名.
 def log_filename(json)
-  # 名前 + seed としておく.
-  name = rename_for_filename(json['bakeryName'])+ '(' + json['seed'] + ')'
+  # ベーカリー名を基本に.
+  name = rename_for_filename(json['bakeryName'])
   File.join(LOG_DIR, name)
 end
 
