@@ -13,6 +13,11 @@ Game.registerMod("syaa_assist_mod",{
 		let MOD=this;
 		
 		// ================================================================================
+		// バージョン.
+		// ================================================================================
+		MOD.version = '1.0'
+
+		// ================================================================================
 		// オプション.
 		// ================================================================================
 		MOD.prefs=[];
@@ -674,12 +679,18 @@ Game.registerMod("syaa_assist_mod",{
 	save:function(){
 		//use this to store persistent data associated with your mod
 		//note: as your mod gets more complex, you should consider storing a stringified JSON instead
-		keepTick= this.keepTick + Game.T;
-		return String(keepTick);
+		data = {
+			'version' : this.version,
+			'keepTick' : this.keepTick,
+		};
+		return JSON.stringify(data);
 	},
 	load:function(str){
 		//do stuff with the string data you saved previously
-		this.keepTick = parseFloat(str) || 0;
+		data = JSON.parse(str);
+		if (data.version == '1.0') {
+			this.keepTick = data['keepTick'];
+		}
 	},
 	// UI 関連.
 });
