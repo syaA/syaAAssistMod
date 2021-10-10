@@ -91,13 +91,14 @@ def rpc_backup_save(json)
     'seed' => json['seed'],
     'save' => json['save'],
   };
-  filename = Time.now.strftime('%Y-%m-%d-%H-%M-%S');
+  filename = Time.now.strftime('%Y-%m-%d-%H-%M-%S.txt');
 
   dir = File.join(SAVE_DIR, rename_for_filename(json['bakeryName']));
-  Dir.mkdir(dir) unless File.exist?
+  Dir.mkdir(dir) unless File.exist?(dir)
   File.open(File.join(dir, filename), 'w') { |f|
     f << JSON.dump(data);
   }
+  return filename
 end
 
 # ログ数取得.

@@ -26,6 +26,7 @@ Game.registerMod("syaa_assist_mod",{
 		MOD.prefs.buyCheckInterval = 30 * 1; // 自動購入のチェック間隔(フレーム).
 		MOD.prefs.dispInfo = 1;	// 行動順位など表示.
 		MOD.prefs.sendLogInterval = 60 * 30; // ログ送信間隔(フレーム).
+		MOD.prefs.sendSaveInterval = 24 * 60 * 60 * 30; // セーブデータ送信間隔(フレーム).
 		MOD.keepTick;	// 通しティック.
 		MOD.ready = 0;
 		MOD.showMenu = 0;
@@ -270,6 +271,11 @@ Game.registerMod("syaa_assist_mod",{
 			// ログ送信.
 			if (((tick % MOD.prefs.sendLogInterval) == 0)) {
 				MOD.sendContLog();
+			}
+
+			// セーブデータのバックアップ.
+			if (((tick % MOD.prefs.sendSaveInterval) == 0)) {
+				MOD.sendSave();
 			}
 		});
 
@@ -625,6 +631,19 @@ Game.registerMod("syaa_assist_mod",{
 
 			let xhr = new XMLHttpRequest();
 			xhr.open('POST', 'http://127.0.0.1:28080/log_' + type);
+			xhr.send(JSON.stringify(data));
+		}
+
+		// セーブ保存.
+		MOD.sendSave = function() {
+			let data = { 
+				'bakeryName' :  Game.bakeryName,
+				'seed' : Game.seed,
+				'save' : Game.WriteSave(1)
+			};
+
+			let xhr = new XMLHttpRequest();
+			xhr.open('POST', 'http://127.0.0.1:28080/backup_save');
 			xhr.send(JSON.stringify(data));
 		}
 
