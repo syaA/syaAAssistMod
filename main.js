@@ -304,7 +304,7 @@ Game.registerMod("syaa_assist_mod",{
 			this.cps = MOD.guessObjectCps(it);
 			this.price = it.getPrice(0);
 			// 購入によって cps が下がることを計算に入れる.
-			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0), Game.cookiesPsRaw + this.cps).cps;
+//			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0), Game.cookiesPsRaw + this.cps).cps;
 
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
@@ -381,7 +381,7 @@ Game.registerMod("syaa_assist_mod",{
 			this.cps = MOD.guessUpgradeCps(it, luckyCps);
 			this.price = it.getPrice(0);
 			// 購入によって cps が下がることを計算に入れる.
-			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0), Game.cookiesPsRaw + this.cps).cps;
+//			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0), Game.cookiesPsRaw + this.cps).cps;
 
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
@@ -483,31 +483,14 @@ Game.registerMod("syaa_assist_mod",{
 			curCps += clickCps;
 			cmp = function(a, b) { return (a > b) ? -1 : ((a < b) ? 1 : 0); }
 			// 参考:https://www.reddit.com/r/CookieClicker/comments/1lsuov/yet_another_calculator_this_one_in_htmljavascript/cc3eqs7/
-			func = function(o) { return o.price / curCps + o.price / o.cps; }
-//			return cmp(func(b), func(a));
-//*
-			// どちらを先に買ったほうが得かを判定する.
-			// A を先に買う場合.
-			let aWait = (a.price < curCookie) ? 0 : ((a.price - curCookie) / curCps);	// a を買うまでにかかる時間.
-			let aAfterCookie = Math.max(curCookie - a.price, 0);	// a を買ったあとのクッキー. // max(0) にすべきか.
-			let abWait = aWait + ((b.price < aAfterCookie) ? 0 : ((b.price - aAfterCookie) / (curCps + a.cps))); // a を買ったあと b を買うのにかかる時間.
-			// B を先に買う場合.
-			let bWait = (b.price < curCookie) ? 0 : ((b.price - curCookie) / curCps);
-			let bAfterCookie = Math.max(curCookie - b.price, 0);
-			let baWait = bWait + ((a.price < bAfterCookie) ? 0 : ((a.price - bAfterCookie) / (curCps + b.cps)));
-
-			if (((abWait == 0) && (baWait == 0)) || (a.price == b.price)) {
-				return cmp(a.cps / a.price, b.cps / b.price);
-			} else {
-				console.assert(abWait != 0);
-				console.assert(baWait != 0);
-				if (a.price < b.price) {
-					return cmp((a.cps + b.cps) / abWait, b.cps / bWait);
+			func = function(o) {
+				if (o.cps < 0) {
+					return Infinity;
 				} else {
-					return cmp(a.cps / aWait, (a.cps + b.cps) / baWait);
+					return o.price / curCps + o.price / o.cps;
 				}
 			}
-//*/
+			return cmp(func(b), func(a));
 		}
 
 		// ゴールデンクッキー状態..
