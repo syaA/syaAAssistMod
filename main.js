@@ -239,9 +239,13 @@ Game.registerMod("syaa_assist_mod",{
 			if (!Game.ready) {
 				return;
 			}
+			if (Game.OnAscend || (Game.AscendTimer != 0)) {
+				return;
+			}
 			if (!MOD.ready) {
 				return;
 			}
+
 
 			let tick = MOD.keepTick + Game.T;
 			if (!tick) {
@@ -635,12 +639,12 @@ Game.registerMod("syaa_assist_mod",{
 			data = {
 				'type' : 'Reincarnate',
 				'id' : 0,
-				'val0' : Game.resets,
-				'val1' : 0,
+				'i0' : Game.resets,
+				'i1' : 0,
 				'cookiesPsRaw' : Game.cookiesPsRaw
 			};
 			MOD.sendLog('event', data);
-			MOD.sendEventLog( { 'type' : 'Reincarnate', 'i0' : Game.resets });
+			MOD.sendEventLog( data );
 		});
 
 		//to finish off, we're replacing the big cookie picture with a cool cookie, why not (the image is in this mod's directory)

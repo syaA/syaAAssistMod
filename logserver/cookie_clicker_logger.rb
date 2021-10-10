@@ -99,6 +99,13 @@ class CookieClickerLogger
             ret['cookiesPsRaw'] << [tick, cps]
           when Event_Reincarnate
             ret['cookiesPsRaw'] << [tick, cps]
+            ret['objectsAmount'].each { |oa|
+              oa << [tick, 0]
+            }
+            ret['objectsCps'].each { |oc|
+              oc << [tick, 0]
+            }
+
         end
       end
     }
