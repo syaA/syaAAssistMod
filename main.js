@@ -260,16 +260,7 @@ Game.registerMod("syaa_assist_mod",{
 
 			// 購入.
 			if ((tick % MOD.prefs.buyCheckInterval) == 0) {
-				let actions = MOD.think();
-				if (actions.length > 0) {
-					if (actions[0].cps > 0) {
-						actions[0].exec();
-					}
-
-					actions.forEach(function(act, index) {
-						act.debugDrawRank(index + 1);
-					});
-				}
+				MOD.think();
 			}
 
 			// ログ送信.
@@ -303,8 +294,6 @@ Game.registerMod("syaa_assist_mod",{
 			this.it = it;
 			this.cps = MOD.guessObjectCps(it);
 			this.price = it.getPrice(0);
-			// 購入によって cps が下がることを計算に入れる.
-//			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0), Game.cookiesPsRaw + this.cps).cps;
 
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
@@ -317,9 +306,11 @@ Game.registerMod("syaa_assist_mod",{
 						'i0' : it.amount,
 						'd0' : it.storedTotalCps,
 					});
+					return true;
 				}
+				return false;
 			}
-			this.debugDrawRank = function(rank) {
+			this.debugDrawRank = function(rank, saving) {
 				let stateId = 'product' + it.id + 'saStatus';
 				let stateDiv = l(stateId);
 				if (!stateDiv) {
@@ -331,7 +322,7 @@ Game.registerMod("syaa_assist_mod",{
 				let cookieRatio = Math.min(Game.cookies / this.price, 1) * 100;
 				stateDiv.innerHTML = `
 <div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:45px;">
-  ${rank}
+  ${rank}${((rank == 1) && saving) ? (':P(' + this.savingRatio.toFixed(1) + '%)') : ''}
 </div>
 <div style="background:linear-gradient(to left, #307000af ${cpsRatio}%, #202020af ${cpsRatio}%);width:45px;text-align:right">
   ${cpsRatio > 0 ? '+' : ''}${(cpsRatio).toFixed(1)}%
@@ -380,8 +371,6 @@ Game.registerMod("syaa_assist_mod",{
 			this.shopIndex = shopIndex;
 			this.cps = MOD.guessUpgradeCps(it, luckyCps);
 			this.price = it.getPrice(0);
-			// 購入によって cps が下がることを計算に入れる.
-//			this.cps -= luckyCps - MOD.guessLuckyCps(Math.max(Game.cookies - this.price, 0), Game.cookiesPsRaw + this.cps).cps;
 
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
@@ -410,9 +399,11 @@ Game.registerMod("syaa_assist_mod",{
 							});
 						}
 					});
+					return true;
 				}
+				return false;
 			}
-			this.debugDrawRank = function(rank) {
+			this.debugDrawRank = function(rank, saving) {
 				let stateId = 'upgrade' + this.shopIndex + 'saStatus';
 				let stateDiv = l(stateId);
 				if (!stateDiv) {
@@ -424,7 +415,7 @@ Game.registerMod("syaa_assist_mod",{
 				let cookieRatio = Math.min(Game.cookies / this.price, 1) * 100;
 				stateDiv.innerHTML = `
 <div style="background-color:${(rank == 1) ? '#ff2020af' : '#602020af'};width:45px;opacity=1.0">
-  ${rank}
+  ${rank}${((rank == 1) && saving) ? (':P(' + this.savingRatio.toFixed(1) + '%)') : ''}
 </div>
 <div style="background:linear-gradient(to left, #307000af ${cpsRatio}%, #202020af ${cpsRatio}%);width:45px;text-align:right">
   ${cpsRatio > 0 ? '+' : ''}${(cpsRatio).toFixed(1)}%
@@ -444,7 +435,7 @@ Game.registerMod("syaa_assist_mod",{
 			this.luckyCps = luckyCps;
 			this.isSaving = true;
 
-			this.exec = function() {}
+			this.exec = function() { return true; }
 			this.debugDrawRank = function(rank) {
 				let stateId = 'saving' + '0' +  'saStatus';
 				let stateDiv = l(stateId);
@@ -575,10 +566,25 @@ Game.registerMod("syaa_assist_mod",{
 				}
 			}
 
-
 			// 行動の効果値でソート.
 			actions.sort(MOD.compareAction);
 
+			// luckyCps より多い場合のみ購入をすすめる.
+			let saving = true;
+			if (actions.length > 0) {
+				let action = actions[0]
+				let afterLuckyCps = MOD.guessLuckyCps(Math.max(Game.cookies - action.price), Game.cookiesPsRaw + action.cps, goldenStatus).cps;
+				action.savingRatio = (afterLuckyCps + action.cps) / luckyCps * 100;
+				if ((afterLuckyCps + action.cps) > luckyCps) {
+					action.exec();
+					saving = false;
+				}
+			}
+
+			// 状況表示を更新.
+			actions.forEach(function(act, index) {
+				act.debugDrawRank(index + 1, saving);
+			});
 
 			return actions;
 		}
