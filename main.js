@@ -492,6 +492,8 @@ Game.registerMod("syaa_assist_mod",{
 			func = function(o) {
 				if (o.cps <= 0) {
 					return Infinity;
+				} else if (curCps <= 0) {
+					return o.price / o.cps;
 				} else {
 					return o.price / curCps + o.price / o.cps;
 				}
