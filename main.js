@@ -683,7 +683,7 @@ Game.registerMod("syaa_assist_mod",{
 		//note: as your mod gets more complex, you should consider storing a stringified JSON instead
 		data = {
 			'version' : this.version,
-			'keepTick' : this.keepTick,
+			'keepTick' : this.keepTick + Game.T,
 		};
 		return JSON.stringify(data);
 	},
