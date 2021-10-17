@@ -33,6 +33,7 @@ Game.registerMod("syaa_assist_mod",{
 		MOD.prefs.sendLogInterval = 60 * 30; // ログ送信間隔(フレーム).
 		MOD.prefs.sendSaveInterval = 24 * 60 * 60 * 30; // セーブデータ送信間隔(フレーム).
 		MOD.keepTick;	// 通しティック.
+		MOD.prevT = 0;
 		MOD.ready = 0;
 		MOD.showMenu = 0;
 
@@ -253,10 +254,15 @@ Game.registerMod("syaa_assist_mod",{
 			}
 
 
-			let tick = MOD.keepTick + Game.T;
+			let elapsed = Game.T - MOD.prevT;
+			if (elapsed > 0) {
+				MOD.keepTick += elapsed;
+			}
+			let tick = MOD.keepTick;
 			if (!tick) {
 				return;
 			}
+			MOD.prevT = Game.T
 
 			// クッキークリック.
 			if (MOD.prefs.bigClick && ((tick % MOD.prefs.bigClickInterval) == 0)) {
@@ -634,7 +640,7 @@ Game.registerMod("syaa_assist_mod",{
 		MOD.sendLog = function(type, data) {
 			data['bakeryName'] = Game.bakeryName;
 			data['seed'] = Game.seed;
-			data['T'] = MOD.keepTick + Game.T;
+			data['T'] = MOD.keepTick;
 
 			let xhr = new XMLHttpRequest();
 			xhr.open('POST', 'http://127.0.0.1:28080/log_' + type);
@@ -657,6 +663,7 @@ Game.registerMod("syaa_assist_mod",{
 		Game.registerHook('reset', function(hard) {
 			if (hard) {
 				MOD.keepTick = 0;
+				MOD.prevT = 0;
 			}
 		});
 
@@ -683,7 +690,7 @@ Game.registerMod("syaa_assist_mod",{
 		//note: as your mod gets more complex, you should consider storing a stringified JSON instead
 		data = {
 			'version' : this.version,
-			'keepTick' : this.keepTick + Game.T,
+			'keepTick' : this.keepTick,
 		};
 		return JSON.stringify(data);
 	},
