@@ -282,6 +282,9 @@ Game.registerMod("syaa_assist_mod",{
 			// 購入.
 			if ((tick % (MOD.prefs.buyCheckInterval / 10)) == 0) {
 				// luckyCps より多い場合のみ購入をすすめる.
+				let goldenStatus = MOD.guessGoldenCookieStatus();
+				let luckyCps = MOD.guessLuckyCps(Game.cookies, Game.cookiesPsRaw, goldenStatus).cps;
+
 				let saving = true;
 				if (MOD.actions.length > 0) {
 					let action = MOD.actions[0];
@@ -295,7 +298,7 @@ Game.registerMod("syaa_assist_mod",{
 				}
 
 				// 状況表示を更新.
-				actions.forEach(function(act, index) {
+				MOD.actions.forEach(function(act, index) {
 					act.debugDrawRank(index + 1, saving);
 				});
 			}
