@@ -292,6 +292,11 @@ Game.registerMod("syaa_assist_mod",{
 						saving = false;
 					}
 				}
+
+				// 状況表示を更新.
+				actions.forEach(function(act, index) {
+					act.debugDrawRank(index + 1, saving);
+				});
 			}
 			
 
@@ -607,11 +612,6 @@ Game.registerMod("syaa_assist_mod",{
 
 			// 行動の効果値でソート.
 			actions.sort(MOD.compareAction);
-
-			// 状況表示を更新.
-			actions.forEach(function(act, index) {
-				act.debugDrawRank(index + 1, saving);
-			});
 
 			return actions;
 		}
