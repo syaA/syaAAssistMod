@@ -292,7 +292,11 @@ Game.registerMod("syaa_assist_mod",{
 					action.savingRatio = (afterLuckyCps + action.cps) / luckyCps * 100;
 					if ((afterLuckyCps + action.cps) > luckyCps) {
 						action.exec();
-						MOD.actions.shift();
+						if (action.isObject) {
+							MOD.actions.shift();
+						} else {
+							MOD.actions = [];
+						}
 						saving = false;
 					}
 				}
@@ -340,6 +344,7 @@ Game.registerMod("syaa_assist_mod",{
 			this.it = it;
 			this.cps = MOD.guessObjectCps(it);
 			this.price = it.getPrice(0);
+			this.isObject = true
 
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
@@ -673,6 +678,7 @@ Game.registerMod("syaa_assist_mod",{
 				MOD.keepTick = 0;
 				MOD.prevT = 0;
 			}
+			MOD.actions = [];
 		});
 
 		Game.registerHook('reincarnate', function() {
