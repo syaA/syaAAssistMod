@@ -241,7 +241,6 @@ Game.registerMod("syaa_assist_mod",{
 		// ================================================================================
 		// 購入.
 		// ================================================================================
-		MOD.actions = [];
 		// 更新タイミング.
 		Game.registerHook('logic', function() {
 			if (!Game.ready) {
@@ -275,38 +274,10 @@ Game.registerMod("syaa_assist_mod",{
 				MOD.clickGoldenCookie();
 			}
 
-			// 購入順位を決める.
-			if ((tick % MOD.prefs.buyCheckInterval) == 0) {
-				MOD.actions = MOD.think();
-			}
 			// 購入.
-			if ((tick % (MOD.prefs.buyCheckInterval / 10)) == 0) {
-				// luckyCps より多い場合のみ購入をすすめる.
-				let goldenStatus = MOD.guessGoldenCookieStatus();
-				let luckyCps = MOD.guessLuckyCps(Game.cookies, Game.cookiesPsRaw, goldenStatus).cps;
-
-				let saving = true;
-				if (MOD.actions.length > 0) {
-					let action = MOD.actions[0];
-					let afterLuckyCps = MOD.guessLuckyCps(Math.max(Game.cookies - action.price), Game.cookiesPsRaw + action.cps, goldenStatus).cps;
-					action.savingRatio = (afterLuckyCps + action.cps) / luckyCps * 100;
-					if ((afterLuckyCps + action.cps) > luckyCps) {
-						action.exec();
-						if (action.isObject) {
-							MOD.actions.shift();
-						} else {
-							MOD.actions = [];
-						}
-						saving = false;
-					}
-				}
-
-				// 状況表示を更新.
-				MOD.actions.forEach(function(act, index) {
-					act.debugDrawRank(index + 1, saving);
-				});
+			if ((tick % MOD.prefs.buyCheckInterval) == 0) {
+				MOD.think();
 			}
-			
 
 			// ログ送信.
 			if (((tick % MOD.prefs.sendLogInterval) == 0)) {
@@ -344,7 +315,6 @@ Game.registerMod("syaa_assist_mod",{
 			this.it = it;
 			this.cps = MOD.guessObjectCps(it);
 			this.price = it.getPrice(0);
-			this.isObject = true
 
 			this.exec = function() {
 				if (Game.cookies >= this.price) {
@@ -622,6 +592,23 @@ Game.registerMod("syaa_assist_mod",{
 			// 行動の効果値でソート.
 			actions.sort(MOD.compareAction);
 
+			// luckyCps より多い場合のみ購入をすすめる.
+			let saving = true;
+			if (actions.length > 0) {
+				let action = actions[0]
+				let afterLuckyCps = MOD.guessLuckyCps(Math.max(Game.cookies - action.price), Game.cookiesPsRaw + action.cps, goldenStatus).cps;
+				action.savingRatio = (afterLuckyCps + action.cps) / luckyCps * 100;
+				if ((afterLuckyCps + action.cps) > luckyCps) {
+					action.exec();
+					saving = false;
+				}
+			}
+
+			// 状況表示を更新.
+			actions.forEach(function(act, index) {
+				act.debugDrawRank(index + 1, saving);
+			});
+
 			return actions;
 		}
 
@@ -678,7 +665,6 @@ Game.registerMod("syaa_assist_mod",{
 				MOD.keepTick = 0;
 				MOD.prevT = 0;
 			}
-			MOD.actions = [];
 		});
 
 		Game.registerHook('reincarnate', function() {
